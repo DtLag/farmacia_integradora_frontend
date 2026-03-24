@@ -8,13 +8,13 @@ import type { Credentials } from '@/types/types.ts'
 const authStore = useAuthStore()
 
 const credenciales = ref<Credentials>({
-  email: 'admin@gmail.com',
-  password: '123456',
+  email: 'admin@farmacia.com',
+  password: 'password',
 })
 
 function Login() {
   const { data, onFetchResponse, onFetchError } = useFetch(
-    'http://localhost:8000/api/login/staff',
+    'http://137.184.185.46/api/login/staff',
     {
       method: 'POST',
       headers: {
@@ -87,9 +87,8 @@ function Login() {
 </template>
 
 <style scoped>
-.page{
-
-  display:flex;
+.page {
+  display: flex;
   align-items: center;
   justify-content: center;
   height: 100vh;
