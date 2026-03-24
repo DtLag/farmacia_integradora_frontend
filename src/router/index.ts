@@ -1,8 +1,78 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import ProvisionalLogin from '@/views/ProvisionalLogin.vue'
+import DashboardView from '@/views/DashboardView.vue'
+import { useAuthStore } from '@/stores/auth.ts'
+import PosView from '@/views/PosView.vue'
+import InventoryView from '@/views/InventoryView.vue'
+import AlertsView from '@/views/AlertsView.vue'
+import ReportsView from '@/views/ReportsView.vue'
+import AuditsView from '@/views/AuditsView.vue'
+import UsersView from '@/views/UsersView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
-  routes: [],
+  routes: [
+    {
+      path: '/login',
+      name: 'login',
+      component: ProvisionalLogin,
+    },
+
+    {
+      path: '/dashboard',
+      name: 'dashboard',
+      component: DashboardView,
+      children: [
+        {
+          path: '/pos',
+          name: 'pos',
+          component: PosView,
+        },
+        {
+          path: '/inventory',
+          name: 'inventory',
+          component: InventoryView,
+        },
+        {
+          path: '/alerts',
+          name: 'alerts',
+          component: AlertsView,
+        },
+        {
+          path: '/reports',
+          name: 'reports',
+          component: ReportsView,
+        },
+        {
+          path: '/audits',
+          name: 'audits',
+          component: AuditsView,
+        },
+        {
+          path: '/users',
+          name: 'users',
+          component: UsersView,
+        },
+      ],
+    },
+  ],
+})
+router.beforeEach((to, from, next) => {
+  const authStore = useAuthStore()
+
+  if (to.matched.some((record) => record.meta.requiresAuth)) {
+
+    if (!authStore.token) {
+      next({ name: 'login' })
+    } else {
+      next()
+    }
+  } else if (to.name === 'login' && authStore.token) {
+
+    next({ name: 'Dashboard' })
+  } else {
+    next()
+  }
 })
 
 export default router
