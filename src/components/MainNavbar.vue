@@ -41,6 +41,13 @@ function logOut() {
                 Punto de Venta
               </RouterLink>
             </li>
+            <!-- 2. Pedidos Pick Up -->
+            <li class="nav-item mx-2">
+              <RouterLink to="/pickup" class="nav-link" active-class="active">
+                <i class="fa-solid fa-envelope"></i>
+                Pick Up
+              </RouterLink>
+            </li>
 
             <!-- 2. Enlace a Inventario (Activo también en sub-vistas como Ajustes) -->
             <li class="nav-item mx-2">

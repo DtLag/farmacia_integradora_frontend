@@ -8,6 +8,7 @@ import AlertsView from '@/views/AlertsView.vue'
 import ReportsView from '@/views/ReportsView.vue'
 import AuditsView from '@/views/AuditsView.vue'
 import UsersView from '@/views/UsersView.vue'
+import PickUpView from '@/views/PickUpView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -27,6 +28,11 @@ const router = createRouter({
           path: '/pos',
           name: 'pos',
           component: PosView,
+        },
+        {
+          path: '/pickup',
+          name: 'pickup',
+          component: PickUpView,
         },
         {
           path: '/inventory',
