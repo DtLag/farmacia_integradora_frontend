@@ -12,32 +12,13 @@ const credenciales = ref<Credentials>({
   password: 'password',
 })
 
-// Función para leer la cookie de CSRF que Laravel nos ha dado
-const getCookie = (name: string) => {
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return decodeURIComponent(parts.pop()?.split(';').shift() || '');
-  return null;
-};
-
 async function Login() {
   try {
-    await fetch('https://api.harold-dev.me/sanctum/csrf-cookie', {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json'
-      },
-      credentials: 'include' 
-    });
-
-    const csrfToken = getCookie('XSRF-TOKEN');
-
     const response = await fetch('https://api.harold-dev.me/api/login/staff', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'X-XSRF-TOKEN': csrfToken || '', 
       },
       credentials: 'include', 
       body: JSON.stringify(credenciales.value)
