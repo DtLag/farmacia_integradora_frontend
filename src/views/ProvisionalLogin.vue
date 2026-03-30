@@ -12,45 +12,33 @@ const credenciales = ref<Credentials>({
   password: 'password',
 })
 
-function Login() {
-  const { data, onFetchResponse, onFetchError } = useFetch(
-    'http://127.0.0.1:8000/api/login/staff',
-    {
+async function Login() {
+  try {
+    const response = await fetch('https://api.harold-dev.me/api/login/staff', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Accept: 'application/json',
+        'Accept': 'application/json',
       },
-    },
-  )
-    .post(credenciales.value)
-    .json<{
-      token: string
-      user: {
-        id: number
-        name: string
-        email: string
-        role: string
-      }
-    }>()
+      credentials: 'include', 
+      body: JSON.stringify(credenciales.value)
+    });
 
-  onFetchResponse(() => {
-    console.log(data.value)
-    if (data.value) {
-      const token = data.value.token
-      const userData = data.value.user
-      if (token) {
-        authStore.logIn(token, userData)
-      }
-
-      router.push('/dashboard')
+    if (!response.ok) {
+      throw new Error(`Error HTTP: ${response.status}`);
     }
-  })
 
-  onFetchError((error) => {
-    console.error('Error en el login:', error)
-    alert('Credenciales incorrectas')
-  })
+    const data = await response.json();
+
+    if (data && data.token) {
+      authStore.logIn(data.token, data.user);
+      router.push('/dashboard');
+    }
+
+  } catch (error) {
+    console.error('Error en el login:', error);
+    alert('Credenciales incorrectas o error de conexión con el servidor.');
+  }
 }
 </script>
 
