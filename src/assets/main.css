@@ -1,1 +1,22 @@
 @import "tailwindcss";
+.product-card {
+  width: 180px;
+  height: auto;
+  border-color: var(--color-gray-300);
+  padding: 10px;
+}
+.products-container {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  padding: 10px;
+
+}
+.price {
+  color: #2563eb;
+  font-weight: 800;
+  padding: 2px;
+}
+img{
+  width: 160px;
+  margin-bottom: 10px;
+}
