@@ -1,31 +1,30 @@
 <script setup lang="ts">
-import type { PaymentMethod, Product, Sale } from '@/types/types.ts'
+import type { PaymentMethod, Product, SaleItem } from '@/types/types.ts'
 import { useApi } from '@/composables/useApiFetch.ts'
 import { computed, onMounted, ref, watch } from 'vue'
 import ProductCard from '@/components/ProductCard.vue'
+import SuccessfulSale from '@/components/SuccessfulSale.vue'
+import SelectedProductsList from '@/components/SelectedProductsList.vue'
 
 const query = ref<string>('')
 const products = ref<Product[]>([])
-const selectedOption = ref('')
+const selectedOption = ref<number>(1)
 const total = computed(() => {
-  return selectedProducts.value.reduce((acc, p) => acc + p.sale_price, 0)
+  return selectedProducts.value.reduce(
+    (acc, product) => acc + product.sale_price * product.amount,
+    0,
+  )
+})
+const saleSummary = ref({
+  total: 0,
+  amountReceived: 0,
+  change: 0,
 })
 const amountReceived = ref(0.0)
-
-const selectedProducts = ref<Product[]>([])
+const change = ref(0.0)
+const selectedProducts = ref<SaleItem[]>([])
 const paymentMethods = ref<PaymentMethod[]>([])
-/*
-const selectedMethod = ref<PaymentMethod>({
-  id=1,
-})
-const params = ref<Sale>({
-  payment_method_id = pa
-  customer_id:number
-  amount_received: number
-  products: selectedProducts
-})
-
- */
+const satisfiedSale = ref<boolean>(false)
 
 onMounted(() => {
   getProducts()
@@ -33,20 +32,28 @@ onMounted(() => {
 })
 
 async function getPaymentMethod() {
-  const response = await useApi('payment-methods', {}).get().json()
+  const response = await useApi('payment/methods', {}).get().json()
   paymentMethods.value = response.data.value.data
 }
 async function getProducts() {
   try {
-    const { data, error } = await useApi('/products/search', {}).get().json()
+    const { data } = await useApi('/products/search', {}).get().json()
 
     products.value = data.value?.data ?? []
-    const raw = data.value?.data ?? []
 
+    const raw = data.value?.data ?? []
+    console.log('primer raw product:', raw[0])
+    console.log('keys del primer producto:', Object.keys(raw[0]))
     products.value = raw.map((p: any) => ({
-      ...p,
+      id: Number(p.id ?? p.product_id ?? p.id_product),
+      name: p.name,
+      codigo: p.codigo,
       sale_price: Number(p.sale_price),
+      location: p.location,
+      stock: p.stock,
+      image_url: p.image_url,
     }))
+    console.log('products cargados:', products.value)
   } catch (e) {
     console.log(e)
   }
@@ -63,8 +70,13 @@ async function searchProduct(search: string) {
     const raw = data.value?.data ?? []
 
     products.value = raw.map((p: any) => ({
-      ...p,
+      id: Number(p.id),
+      name: p.name,
+      codigo: p.codigo,
       sale_price: Number(p.sale_price),
+      location: p.location,
+      stock: p.stock,
+      image_url: p.image_url,
     }))
   } catch (e) {
     console.log(e)
@@ -72,12 +84,73 @@ async function searchProduct(search: string) {
 }
 
 function selectProducts(newProduct: Product) {
-  selectedProducts.value.push(newProduct)
-  console.log(selectedProducts.value)
+  console.log('producto clickeado:', newProduct)
+
+  const existingProduct = selectedProducts.value.find((product) => product.id === newProduct.id)
+
+  if (existingProduct) {
+    existingProduct.amount += 1
+    return
+  }
+
+  selectedProducts.value.push({
+    id: newProduct.id,
+    name: newProduct.name,
+    sale_price: Number(newProduct.sale_price),
+    amount: 1,
+  })
 }
 
 async function registerSale() {
-  const { data, error, isFetching } = await useApi('/sales').post()
+  if (selectedOption.value === 1 && total.value > amountReceived.value) {
+    const difference = total.value - amountReceived.value
+    alert(`Monto insuficiente - $${difference} faltantes`)
+    return
+  }
+
+  const payload = {
+    payment_method_id: selectedOption.value,
+    customer_id: null,
+    products: selectedProducts.value.map((product) => ({
+      id: product.id,
+      amount: product.amount,
+    })),
+    ...(selectedOption.value === 1 && {
+      amount_received: Number(amountReceived.value),
+    }),
+  }
+
+  try {
+    console.log('payload:', payload)
+
+    const { data, error } = await useApi('https://api.harold-dev.me/api/sales', {})
+      .post(payload)
+      .json()
+
+    if (selectedOption.value === 2) {
+      change.value = 0
+    } else {
+      change.value = amountReceived.value - total.value
+    }
+
+    saleSummary.value = {
+      total: total.value,
+      amountReceived: amountReceived.value,
+      change: change.value,
+    }
+
+    satisfiedSale.value = true
+
+    selectedProducts.value = []
+    amountReceived.value = 0
+    selectedOption.value = 1
+  } catch (e) {
+    console.error(e)
+    alert('Error de conexión con el servidor')
+  }
+}
+function removeSelectedProduct(id: number) {
+  selectedProducts.value = selectedProducts.value.filter((product) => product.id !== id)
 }
 watch(query, (newValue) => {
   if (!newValue) {
@@ -117,13 +190,20 @@ watch(query, (newValue) => {
         <div class="w-full">
           <h1 class="text-3xl font-bold">Venta</h1>
           <div class="mt-6">
+            <h2 class="mb-3 text-lg font-semibold text-gray-800">Productos seleccionados</h2>
+
+            <div class="max-h-54 overflow-y-auto pr-1">
+              <SelectedProductsList :products="selectedProducts" @remove="removeSelectedProduct" />
+            </div>
+          </div>
+          <div class="mt-6">
             <label>Método de pago</label>
             <div>
               <select
                 class="appearance-noneappearance-none w-full bg-white border border-gray-300 rounded-lg py-1 px-4 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 v-model="selectedOption"
               >
-                <option v-for="method in paymentMethods" :key="method.id">
+                <option v-for="method in paymentMethods" :key="method.id" :value="method.id">
                   {{ method.method_name }}
                 </option>
               </select>
@@ -142,17 +222,15 @@ watch(query, (newValue) => {
             <div class="m-6 flex flex-col space-y-4 text-gray-800 text-lg">
               <div class="flex justify-between text-xl">
                 <span>Total:</span>
-                <span class="font-extrabold">${{ total }}.00</span>
-              </div>
-
-              <div class="flex justify-between">
-                <span>Cambio:</span>
-                <span class="font-bold">${{ amountReceived - total }}.00</span>
+                <span class="font-extrabold">${{ total }}</span>
               </div>
             </div>
 
             <button
               class="w-full bg-emerald-700 text-white px-4 py-2 rounded-md hover:bg-emerald-800 transition"
+              type="submit"
+              @click="registerSale"
+              data-dialog-target="modal"
             >
               Cobrar
             </button>
@@ -161,6 +239,15 @@ watch(query, (newValue) => {
       </aside>
     </div>
   </div>
+
+  <!-- MODAL AL COBRAR -->
+  <SuccessfulSale
+    v-if="satisfiedSale"
+    :total="saleSummary.total"
+    :amount-received="saleSummary.amountReceived"
+    :change="saleSummary.change"
+    @click.self="satisfiedSale = false"
+  />
 </template>
 
 <style scoped>
@@ -212,4 +299,5 @@ hr {
   background-color: var(--color-gray-300);
   border: none;
 }
+
 </style>

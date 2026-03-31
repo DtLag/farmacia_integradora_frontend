@@ -3,7 +3,7 @@ import { useAuthStore } from '@/stores/auth'
 import router from '@/router'
 
 export const useApi = createFetch({
-  baseUrl: 'http://127.0.0.1:8000/api/',
+  baseUrl: 'https://api.harold-dev.me/api/',
 
   options: {
     async beforeFetch({ options, cancel }) {
@@ -28,8 +28,7 @@ export const useApi = createFetch({
       const authStore = useAuthStore()
 
       if (ctx.response?.status === 401) {
-        authStore.logOut()
-        router.push('/login')
+        console.log('401 detectado:', ctx.response)
       }
 
       return ctx
