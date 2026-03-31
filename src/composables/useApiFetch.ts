@@ -28,8 +28,7 @@ export const useApi = createFetch({
       const authStore = useAuthStore()
 
       if (ctx.response?.status === 401) {
-        authStore.logOut()
-        router.push('/login')
+        console.log('401 detectado:', ctx.response)
       }
 
       return ctx

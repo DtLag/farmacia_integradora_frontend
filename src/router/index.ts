@@ -9,6 +9,7 @@ import ReportsView from '@/views/ReportsView.vue'
 import AuditsView from '@/views/AuditsView.vue'
 import UsersView from '@/views/UsersView.vue'
 import PickUpView from '@/views/PickUpView.vue'
+import SuccessfulSale from '@/components/SuccessfulSale.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -18,7 +19,11 @@ const router = createRouter({
       name: 'login',
       component: ProvisionalLogin,
     },
-
+    {
+      path:'/success',
+      name:'success',
+      component:SuccessfulSale
+    },
     {
       path: '/dashboard',
       name: 'dashboard',
