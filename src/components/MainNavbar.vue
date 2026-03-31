@@ -66,7 +66,7 @@ const activeClass = 'text-white bg-white/20 shadow-inner'
 
             <div class="leading-tight text-right">
               <p class="text-white/40 text-[10px] uppercase tracking-wide">Usuario</p>
-              <p class="text-white font-medium text-sm truncate max-w-[120px]">
+              <p v-if="authStore.user" class="text-white font-medium text-sm truncate max-w-[120px]">
                 {{ authStore.user.name }}
               </p>
             </div>
@@ -173,7 +173,7 @@ const activeClass = 'text-white bg-white/20 shadow-inner'
 
             <div>
               <p class="text-white/40 text-[10px] uppercase">Usuario</p>
-              <p class="text-white font-medium text-sm truncate max-w-[120px]">
+              <p v-if="authStore.user" class="text-white font-medium text-sm truncate max-w-[120px]">
                 {{ authStore.user.name }}
               </p>
             </div>
