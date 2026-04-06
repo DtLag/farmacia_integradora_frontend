@@ -54,3 +54,14 @@ export interface ReportItem {
   ganancia: number
   margen: number
 }
+export interface InventoryReportItem {
+  id:number
+  name:string
+  categoria:string
+  cantidad_ventas:number
+  cantidad_ordenes_completadas:number
+  cantidad_ordenes_canceladas:number
+  movimiento_real:number
+  porcentaje_rotacion:number
+  clasificacion_rotacion:string
+}
