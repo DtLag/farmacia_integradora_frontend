@@ -1,7 +1,11 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
 
+import ReportsMenu from '@/components/ReportsMenu.vue'
+</script>
 <template>
-  <h1>REPORTS</h1>
-</template>
+<ReportsMenu></ReportsMenu>
 
-<style scoped></style>
+</template>
+<style>
+
+</style>

@@ -14,30 +14,29 @@ const credenciales = ref<Credentials>({
 
 async function Login() {
   try {
-    const response = await fetch('https://api.harold-dev.me/api/login/staff', {
+    const response = await fetch('http://127.0.0.1:8000/api/login/staff', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json',
+        Accept: 'application/json',
       },
       credentials: 'include',
-      body: JSON.stringify(credenciales.value)
-    });
+      body: JSON.stringify(credenciales.value),
+    })
 
     if (!response.ok) {
-      throw new Error(`Error HTTP: ${response.status}`);
+      throw new Error(`Error HTTP: ${response.status}`)
     }
 
-    const data = await response.json();
+    const data = await response.json()
 
     if (data && data.token) {
-      authStore.logIn(data.token, data.user);
-      router.push('/dashboard');
+      authStore.logIn(data.token, data.user)
+      router.push('/dashboard')
     }
-
   } catch (error) {
-    console.error('Error en el login:', error);
-    alert('Credenciales incorrectas o error de conexión con el servidor.');
+    console.error('Error en el login:', error)
+    alert('Credenciales incorrectas o error de conexión con el servidor.')
   }
 }
 </script>

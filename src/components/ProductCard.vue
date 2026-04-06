@@ -8,7 +8,7 @@ defineProps<{
 
 <template>
   <div class="rounded-lg border border-gray-300 shadow-md p-3 w-[180px]">
-    <img :src="product.image_url" class="w-full h-24 object-cover mb-2" />
+    <img :src="product.image_url" :alt="product.image_url" class="w-full h-24 object-cover mb-2" />
     <p class="font-extrabold text-sm leading-tight">{{ product.name.toUpperCase() }}</p>
     <p class="price ">${{ product.sale_price }}</p>
     <p class="text-xs">Stock: {{ product.stock }}</p>

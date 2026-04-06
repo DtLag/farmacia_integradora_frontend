@@ -42,3 +42,15 @@ export interface saleValues {
   amountReceived:number
   change:number
 }
+export interface ReportItem {
+  product_id: number
+  codigo: number
+  name: string
+  cantidad: number
+  ventas_realizadas: number
+  pedidos_realizados: number
+  ingresos: number
+  costo: number
+  ganancia: number
+  margen: number
+}
