@@ -12,6 +12,7 @@ import PickUpView from '@/views/PickUpView.vue'
 import SuccessfulSale from '@/components/SuccessfulSale.vue'
 import HomeView from '@/views/HomeView.vue'
 import CustomerLoginView from '@/views/Customer/Auth/Login.vue'
+import CustomerRegisterView from '@/views/Customer/Auth/Register.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -32,9 +33,20 @@ const router = createRouter({
       component:SuccessfulSale
     },
     {
-      path: '/user/login',
-      name: 'user',
-      component: CustomerLoginView,
+      path: '/customer',
+      redirect: '/customer/login',
+      children: [
+        {
+          path: 'login',
+          name: 'customer-login',
+          component: CustomerLoginView,
+        },
+        {
+          path: 'register',
+          name: 'customer-register',
+          component: CustomerRegisterView,
+        }
+      ]
     },
     {
       path: '/dashboard',
