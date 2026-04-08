@@ -13,10 +13,16 @@ import SuccessfulSale from '@/components/SuccessfulSale.vue'
 import SalesReport from '@/components/SalesReport.vue'
 import InventoryReport from '@/components/InventoryReport.vue'
 import UserReport from '@/components/UserReport.vue'
+import HomeView from '@/views/HomeView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
+    {
+      path: '/',
+      name: 'home',
+      component: HomeView,
+    },
     {
       path: '/login',
       name: 'login',
