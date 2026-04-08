@@ -29,18 +29,12 @@ async function getReport() {
       if (!startDate.value || !endDate.value) {
         errorMessage.value = 'Selecciona ambas fechas'
       }
-      if (startDate.value > endDate.value) {
-        errorMessage.value = 'Fechas invalidas'
-      }
+
       url += `&from=${startDate.value}&to=${endDate.value}`
-      console.log('from:', startDate.value)
-      console.log('to:', endDate.value)
     }
     const { data, error } = await useApi(url, {}).get().json()
-    console.log(data.value)
 
     if (error.value) {
-      console.error(error.value)
       errorMessage.value = 'Error al obtener el reporte'
       report.value = []
       return
@@ -81,17 +75,19 @@ onMounted(() => {
 <template>
   <div>
     <div class="bg-blue-100 p-3 rounded-xl flex gap-4 items-center">
-      <select
-        v-model="selectedPeriod"
-        @change="getReport"
-        class="bg-white h-8 w-fit rounded-xl px-2"
-      >
-        <option value="week">Últimos 7 días</option>
-        <option value="month">Último mes</option>
-        <option value="custom">Personalizado</option>
-        <option value="historical">Histórico</option>
-      </select>
-
+      <div class="flex flex-col">
+        <label class="text-xs mb-1">Periodo</label>
+        <select
+          v-model="selectedPeriod"
+          @change="getReport"
+          class="bg-white h-8 w-fit rounded-xl px-2"
+        >
+          <option value="week">Últimos 7 días</option>
+          <option value="month">Último mes</option>
+          <option value="custom">Personalizado</option>
+          <option value="historical">Histórico</option>
+        </select>
+      </div>
       <input
         v-if="selectedPeriod === 'custom'"
         type="date"
@@ -117,7 +113,6 @@ onMounted(() => {
       >
         <thead class="bg-red-700 text-white">
           <tr>
-
             <th class="px-4 py-2">Producto</th>
             <th class="px-4 py-2">Categoria</th>
             <th class="px-4 py-2">Ventas</th>
@@ -157,5 +152,8 @@ input {
   width: fit-content;
   height: 32px;
   padding: 5px;
+}
+label {
+  color: #1e3a6e;
 }
 </style>

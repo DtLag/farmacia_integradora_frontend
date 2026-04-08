@@ -65,3 +65,25 @@ export interface InventoryReportItem {
   porcentaje_rotacion:number
   clasificacion_rotacion:string
 }
+export interface staff{
+  id:number
+  name:string
+  last_name:string
+  email:string
+  role_id:number
+}
+
+export interface UserMetricsItem {
+  user_id:number
+  user_name: string
+  email: string
+  role_name: string
+  ventas_completadas: number
+  ventas_canceladas: number
+  ingresos_ventas: number
+  pedidos_completados: number
+  pedidos_cancelados: number
+  ingresos_pedidos:number
+  movimientos_inventario:number
+  acciones_registradas:number
+}

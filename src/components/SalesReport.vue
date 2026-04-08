@@ -78,19 +78,21 @@ onMounted(() => {
 </script>
 
 <template>
-  <div>
-    <div class="bg-blue-100 p-3 rounded-xl flex gap-4 items-center">
-      <select
-        v-model="selectedPeriod"
-        @change="getReport"
-        class="bg-white h-8 w-fit rounded-xl px-2"
-      >
-        <option value="week">Últimos 7 días</option>
-        <option value="month">Último mes</option>
-        <option value="custom">Personalizado</option>
-        <option value="historical">Histórico</option>
-      </select>
-
+  <div >
+    <div class="bg-blue-100 p-3 rounded-xl flex gap-4 items-center ">
+      <div class="flex flex-col">
+        <label class="text-xs mb-1">Periodo</label>
+        <select
+          v-model="selectedPeriod"
+          @change="getReport"
+          class="bg-white h-8 w-fit rounded-xl px-2"
+        >
+          <option value="week">Últimos 7 días</option>
+          <option value="month">Último mes</option>
+          <option value="custom">Personalizado</option>
+          <option value="historical">Histórico</option>
+        </select>
+      </div>
       <input
         v-if="selectedPeriod === 'custom'"
         type="date"
@@ -157,5 +159,8 @@ input {
   width: fit-content;
   height: 32px;
   padding: 5px;
+}
+label {
+  color: #1e3a6e;
 }
 </style>
