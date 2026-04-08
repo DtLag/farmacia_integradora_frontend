@@ -42,3 +42,48 @@ export interface saleValues {
   amountReceived:number
   change:number
 }
+export interface ReportItem {
+  product_id: number
+  codigo: number
+  name: string
+  cantidad: number
+  ventas_realizadas: number
+  pedidos_realizados: number
+  ingresos: number
+  costo: number
+  ganancia: number
+  margen: number
+}
+export interface InventoryReportItem {
+  id:number
+  name:string
+  categoria:string
+  cantidad_ventas:number
+  cantidad_ordenes_completadas:number
+  cantidad_ordenes_canceladas:number
+  movimiento_real:number
+  porcentaje_rotacion:number
+  clasificacion_rotacion:string
+}
+export interface staff{
+  id:number
+  name:string
+  last_name:string
+  email:string
+  role_id:number
+}
+
+export interface UserMetricsItem {
+  user_id:number
+  user_name: string
+  email: string
+  role_name: string
+  ventas_completadas: number
+  ventas_canceladas: number
+  ingresos_ventas: number
+  pedidos_completados: number
+  pedidos_cancelados: number
+  ingresos_pedidos:number
+  movimientos_inventario:number
+  acciones_registradas:number
+}

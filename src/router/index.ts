@@ -10,6 +10,9 @@ import AuditsView from '@/views/AuditsView.vue'
 import UsersView from '@/views/UsersView.vue'
 import PickUpView from '@/views/PickUpView.vue'
 import SuccessfulSale from '@/components/SuccessfulSale.vue'
+import SalesReport from '@/components/SalesReport.vue'
+import InventoryReport from '@/components/InventoryReport.vue'
+import UserReport from '@/components/UserReport.vue'
 import HomeView from '@/views/HomeView.vue'
 
 const router = createRouter({
@@ -26,15 +29,19 @@ const router = createRouter({
       component: ProvisionalLogin,
     },
     {
-      path:'/success',
-      name:'success',
-      component:SuccessfulSale
+      path: '/success',
+      name: 'success',
+      component: SuccessfulSale,
     },
     {
       path: '/dashboard',
       name: 'dashboard',
       component: DashboardView,
       children: [
+        {
+          path: '',
+          redirect: '/pos',
+        },
         {
           path: '/pos',
           name: 'pos',
@@ -59,6 +66,27 @@ const router = createRouter({
           path: '/reports',
           name: 'reports',
           component: ReportsView,
+          children: [
+            {
+              path: '',
+              redirect: '/reports/sales',
+            },
+            {
+              path: '/reports/sales',
+              name: 'salesReport',
+              component: SalesReport,
+            },
+            {
+              path: '/reports/inventory',
+              name: 'inventoryReport',
+              component: InventoryReport,
+            },
+            {
+              path: '/reports/users',
+              name: 'usersReport',
+              component: UserReport,
+            },
+          ],
         },
         {
           path: '/audits',

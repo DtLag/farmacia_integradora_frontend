@@ -123,9 +123,7 @@ async function registerSale() {
   try {
     console.log('payload:', payload)
 
-    const { data, error } = await useApi('https://api.harold-dev.me/api/sales', {})
-      .post(payload)
-      .json()
+    const { data, error } = await useApi('/sales', {}).post(payload).json()
 
     if (selectedOption.value === 2) {
       change.value = 0
@@ -140,6 +138,8 @@ async function registerSale() {
     }
 
     satisfiedSale.value = true
+    console.log(data)
+
 
     selectedProducts.value = []
     amountReceived.value = 0
@@ -299,5 +299,4 @@ hr {
   background-color: var(--color-gray-300);
   border: none;
 }
-
 </style>

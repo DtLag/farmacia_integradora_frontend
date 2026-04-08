@@ -18,7 +18,7 @@ const activeClass = 'text-white bg-white/20 shadow-inner'
 </script>
 
 <template>
-  <nav class="w-full bg-[#375ab4] shadow-md mb-4">
+  <nav class="w-full bg-[#375ab4] shadow-md ">
     <div class="px-6">
       <div class="flex items-center h-14">
         <!-- IZQUIERDA -->
