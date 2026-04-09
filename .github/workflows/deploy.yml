@@ -32,4 +32,4 @@ jobs:
           port: 22
           local_path: './dist/*'
           remote_path: '/home/harold-dev-front/htdocs/harold-dev.me'
-          delete_remote_files: true
+          delete_remote_files: false
