@@ -87,3 +87,39 @@ export interface UserMetricsItem {
   movimientos_inventario:number
   acciones_registradas:number
 }
+
+interface OrderDetail {
+  id: number;
+  amount: number;
+  unit_price: number;
+  subtotal: number;
+  product: {
+    id: number;
+    name: string;
+    presentation: string;
+    codigo: string;
+    sale_price: number;
+    image: string;
+  }
+}
+
+export interface Order {
+  id: number;
+  register_date_time: string;
+  scheduled_time: string;
+  state: string;
+  customer: {
+    id: number;
+    name: string;
+  };
+  employee: {
+    id: number;
+    name: string;
+    last_name: string;
+  };
+  payment: {
+    id: number;
+    method_name: string;
+  };
+  order_details: OrderDetail[];
+}
