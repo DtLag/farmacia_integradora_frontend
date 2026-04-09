@@ -1,7 +1,7 @@
 import { createFetch } from '@vueuse/core'
 
 export const usePublicApi = createFetch({
-  baseUrl: 'https://api.harold-dev.me/api/',
+  baseUrl: 'http://127.0.0.1:8000/api/',
 
   options: {
     beforeFetch({ options }) {
@@ -14,6 +14,8 @@ export const usePublicApi = createFetch({
     },
     onFetchError(ctx) {
       console.error('Error en API Pública:', ctx.error)
+      console.error('Respuesta del servidor:', ctx.response)  
+      console.error('Datos de respuesta:', ctx.data)  
       return ctx
     },
   },

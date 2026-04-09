@@ -6,7 +6,6 @@ import type { Credentials, User } from '@/types/types'
 
 interface RegisterPayload {
   name: string
-  lastname: string
   email: string
   phone: string
   password: string
@@ -26,7 +25,7 @@ export function useCustomerAuth() {
     loading.value = true
     error.value = null
     try {
-      const { data, error: fetchError } = await usePublicApi('RUTAAPI').post(payload).json<AuthResponse>()
+      const { data, error: fetchError } = await usePublicApi('login/customer').post(payload).json<AuthResponse>()
 
       if (fetchError.value) throw new Error('No se pudo iniciar sesión')
       if (!data.value?.token || !data.value?.user) throw new Error('Respuesta inválida del servidor')
@@ -43,18 +42,23 @@ export function useCustomerAuth() {
   async function register(payload: RegisterPayload) {
     loading.value = true
     error.value = null
+
+    console.log(payload)
     try {
-      const { error: fetchError } = await usePublicApi('RUTAAPI').post(payload).json()
+      const { error: fetchError } = await usePublicApi('register/customer').post(payload).json()
 
-      if (fetchError.value) throw new Error('No se pudo crear la cuenta')
+      if (fetchError.value) {
+        console.error('Error en registro:', fetchError.value)
+        throw new Error('No se pudo crear la cuenta')
+      }
 
-      await router.push('/customer/login')
+      return payload.email
+
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Error inesperado'
     } finally {
       loading.value = false
     }
   }
-
   return { loading, error, login, register }
 }

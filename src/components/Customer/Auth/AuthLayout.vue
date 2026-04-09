@@ -8,30 +8,35 @@ defineProps<{
 </script>
 
 <template>
-  <div class="grid grid-cols-2">
+  <div class="grid grid-cols-1 lg:grid-cols-2 min-h-screen">
+    
     <div
-      class="h-screen bg-center bg-cover bg-no-repeat flex items-center"
+      class="hidden lg:flex min-h-screen bg-center bg-cover bg-no-repeat items-center"
       :style="{ backgroundImage: `url(${fondoLogin})` }"
     >
       <div
-        class="w-full h-1/3 bg-cover bg-no-repeat flex items-center justify-end pr-10"
+        class="w-full py-16 bg-cover bg-no-repeat flex items-center justify-end pr-10"
         :style="{ backgroundImage: `url(${BannerLogin})` }"
       >
-        <p class="text-5xl text-center text-white font-extrabold leading-tight">
+        <p class="text-5xl text-right text-white font-extrabold leading-tight">
           <span class="block">FARMACIA</span>
           <span class="block">DR. PEREZ</span>
         </p>
       </div>
     </div>
 
-    <div class="h-screen flex items-center py-10">
-      <div class="bg-[#C1DFF5] w-full h-11/12 mx-24 my-24 p-10 rounded-lg shadow-lg">
-        <p class="text-6xl text-center text-black font-bold leading-tight mb-10">
+    <div class="flex items-center justify-center p-4 sm:p-8 lg:p-12 min-h-screen">
+      
+      <div class="bg-[#C1DFF5] w-full max-w-xl p-8 sm:p-10 rounded-2xl shadow-lg">
+        
+        <p class="text-4xl sm:text-5xl lg:text-6xl text-center text-black font-bold leading-tight mb-8">
           <span v-for="(linea, i) in tituloLineas" :key="i" class="block">{{ linea }}</span>
         </p>
 
         <slot />
+        
       </div>
     </div>
+    
   </div>
 </template>

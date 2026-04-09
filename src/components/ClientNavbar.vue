@@ -41,13 +41,15 @@ const emit = defineEmits(['onSearch'])
                     <RouterLink to="/profile" class="text-sm font-medium text-gray-700 hover:text-blue-600">
                         {{ authStore.user?.name }}
                     </RouterLink>
-                    <button @click="logOut" class="text-xs text-red-500 hover:bg-red-50 px-2 py-1 rounded transition">
-                        Salir
-                    </button>
+                    <RouterLink to="/">
+                        <button @click="logOut" class="text-xs text-red-500 hover:bg-red-50 px-2 py-1 rounded transition">
+                                Salir
+                        </button>
+                    </RouterLink>
                 </div>
 
                 <div v-else class="hidden sm:flex items-center gap-3">
-                    <RouterLink to="/login" class="text-sm font-medium text-gray-600 hover:text-blue-600">
+                    <RouterLink to="/customer/login" class="text-sm font-medium text-gray-600 hover:text-blue-600">
                     Ingresar
                     </RouterLink>
                 </div>
