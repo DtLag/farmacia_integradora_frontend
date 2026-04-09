@@ -14,6 +14,8 @@ import SalesReport from '@/components/SalesReport.vue'
 import InventoryReport from '@/components/InventoryReport.vue'
 import UserReport from '@/components/UserReport.vue'
 import HomeView from '@/views/HomeView.vue'
+import CustomerLoginView from '@/views/Customer/Auth/Login.vue'
+import CustomerRegisterView from '@/views/Customer/Auth/Register.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -32,6 +34,22 @@ const router = createRouter({
       path: '/success',
       name: 'success',
       component: SuccessfulSale,
+    },
+    {
+      path: '/customer',
+      redirect: '/customer/login',
+      children: [
+        {
+          path: 'login',
+          name: 'customer-login',
+          component: CustomerLoginView,
+        },
+        {
+          path: 'register',
+          name: 'customer-register',
+          component: CustomerRegisterView,
+        }
+      ]
     },
     {
       path: '/dashboard',
@@ -102,21 +120,19 @@ const router = createRouter({
     },
   ],
 })
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, from) => { 
   const authStore = useAuthStore()
 
   if (to.matched.some((record) => record.meta.requiresAuth)) {
-
     if (!authStore.token) {
-      next({ name: 'login' })
+      return { name: 'login' } 
     } else {
-      next()
+      return true  
     }
   } else if (to.name === 'login' && authStore.token) {
-
-    next({ name: 'Dashboard' })
+    return { name: 'dashboard' }  
   } else {
-    next()
+    return true  
   }
 })
 
