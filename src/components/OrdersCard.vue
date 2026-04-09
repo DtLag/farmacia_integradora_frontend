@@ -28,46 +28,45 @@ function completar(){
 </script>
 
 <template>
-  <div @click="select" class="p-5 flex justify-between items-start border-b border-slate-50 cursor-pointer">
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">    
-      <div class="flex items-center gap-3">
-        <div>
-          <span class="text-xs font-bold text-slate-400">
-            ID: #{{ props.order.id }}
-          </span>
-        
-          <h2 class="font-bold text-slate-800">
-            Cliente: {{ props.order.customer?.name  || 'Cancelado' }}
-          </h2>
-          <h2 class="font-bold text-slate-800">
-            Empleado encargado: {{ props.order.employee?.name || 'Cancelado' }} {{ props.order.employee.last_name }}
-          </h2>
+  <div @click="select" class="cursor-pointer group"> 
+    <div :class="'bg-white rounded-2xl border transition-all duration-200 flex flex-col h-full'">    
+      <div class="p-4 border-b border-slate-50">
+        <div class="flex justify-between items-start mb-1">
+          <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider"> No. Pedido: #{{ props.order.id }} </span>          
         </div>
+        
+        <h2 class="font-bold text-slate-800 text-sm line-clamp-1">
+          {{ props.order.customer?.name || 'Venta General' }}
+        </h2>
       </div>
     
-      <div class="p-5 flex-grow space-y-3 text-sm text-slate-600">
-      
-        <p><strong>Fecha registro:</strong> {{ props.order.register_date_time }}</p>
-        <p><strong>Fecha máxima para recoger:</strong> {{ props.order.scheduled_time }}</p>      
-        <p><strong>Método de pago:</strong> {{ props.order.payment?.method_name || 'Cancelado' }}</p>
+      <div class="p-4 flex-grow space-y-2 text-[13px] text-slate-600">
+        <p class="flex justify-between">
+          <span class="text-slate-400 font-medium">Fecha límite:</span> 
+          <span class="font-bold text-slate-700">{{ props.order.scheduled_time}}</span>
+        </p>
+        <p class="flex justify-between">
+          <span class="text-slate-400 font-medium">Método de pago:</span>
+          <span class="text-slate-700">{{ props.order.payment?.method_name || 'N/A' }}</span>
+        </p>
       </div>
       
-      <div class="p-4 bg-slate-50/50 border-t border-slate-100 flex gap-2">      
-        <div v-if="props.order.state === 'pending'">        
-          <button @click.stop="procesar" class="flex-1 bg-amber-100 text-amber-700 py-2 rounded-lg font-bold text-xs cursor-pointer">
+      <div class="p-3 bg-slate-50/80 border-t border-slate-100 flex gap-2">      
+        <div v-if="props.order.state === 'pending'" class="flex w-full gap-2">        
+          <button @click.stop="procesar" class="flex-[2] bg-amber-500 hover:bg-amber-600 text-white py-2.5 rounded-xl font-bold text-xs transition-colors shadow-sm">
             PROCESAR        
           </button>
         
-          <button @click.stop="cancelar" class="bg-rose-50 text-rose-600 px-3 py-2 rounded-lg font-bold text-xs cursor-pointer">
+          <button @click.stop="cancelar" class="flex-1 bg-white hover:bg-rose-50 text-rose-500 border border-slate-200 hover:border-rose-200 py-2.5 rounded-xl font-bold text-[10px] transition-all">
             CANCELAR
           </button>
         </div>
       
-        <div v-else-if="props.order.state === 'ready'">
-          <button @click.stop="completar" class="flex-1 bg-green-600 text-white py-2 rounded-lg font-bold text-xs cursor-pointer">
+        <div v-else-if="props.order.state === 'ready'" class="flex w-full gap-2">
+          <button @click.stop="completar" class="flex-[2] bg-green-600 hover:bg-green-700 text-white py-2.5 rounded-xl font-bold text-xs transition-colors shadow-sm">
             COMPLETAR
           </button>
-          <button @click.stop="cancelar" class="bg-rose-50 text-rose-600 px-3 py-2 rounded-lg font-bold text-xs cursor-pointer">
+          <button @click.stop="cancelar" class="flex-1 bg-white hover:bg-rose-50 text-rose-500 border border-slate-200 py-2.5 rounded-xl font-bold text-[10px]">
             CANCELAR
           </button>
         </div>

@@ -1,16 +1,20 @@
 import { defineStore } from "pinia";
 import { ref} from "vue";
 import type { Order } from "@/types/types";
-import {useFetch} from '@vueuse/core'
+import { useApi } from '@/composables/useApiFetch.ts'
 
 export const useOrdersStore = defineStore('orderStore', () => {
-    const orders = ref<Order[]>([])
+    const orders = ref<Order[]>([]);
     const selectedOrder = ref<Order | null>(null);
     const activeModal = ref< 'procesar' | 'cancelar' | 'completar' | null>(null);
+    const currentState = ref< string>('pending');
+    const timerId = ref<number | null>(null)
 
     async function getOrders(state: string = 'pending'){
-        const {data, error} = await useFetch(`http://127.0.0.1:8000/api/pickup/order/${state}`).get().json();
+        const {data, error} = await useApi(`/pickup/order/${state}`).get().json();
         
+        currentState.value = state;
+
         if(orders.value){
             orders.value = data.value.data
         }
@@ -28,26 +32,44 @@ export const useOrdersStore = defineStore('orderStore', () => {
         activeModal.value = null
     }
 
+    function autoRefresh(){
+        if(timerId.value){
+            return;
+        }
+
+        timerId.value = setInterval(() => {
+            getOrders(currentState.value);
+        }, 300000);
+    }
+
+    function cancelAutoRefresh(){
+        if(timerId.value){
+            clearInterval(timerId.value);
+            timerId.value = null;
+        }
+        
+    }
+
     async function startProcessOrder (){
-        await useFetch(`http://127.0.0.1:8000/api/pickup/orders/${selectedOrder.value?.id}/start`).patch().json();
+        await useApi(`/pickup/orders/${selectedOrder.value?.id}/start`).patch().json();
 
         await getOrders();
         closeModal()
     }
 
     async function completeOrder (){
-        await useFetch(`http://127.0.0.1:8000/api/pickup/${selectedOrder.value?.id}/complete`).post().json();
+        await useApi(`/pickup/${selectedOrder.value?.id}/complete`).post().json();
 
         await getOrders();
         closeModal()
     }
 
     async function cancelOrder (){
-        await useFetch(`http://127.0.0.1:8000/api/pickup/${selectedOrder.value?.id}/cancel`).post().json();
+        await useApi(`/pickup/${selectedOrder.value?.id}/cancel`).post().json();
 
         await getOrders();
         closeModal()
     }
 
-    return {orders, selectedOrder, activeModal, getOrders, selectOrder, openModal, closeModal, startProcessOrder, completeOrder, cancelOrder}
+    return {orders, selectedOrder, activeModal, currentState, getOrders, selectOrder, openModal, autoRefresh, cancelAutoRefresh, closeModal, startProcessOrder, completeOrder, cancelOrder}
 })
