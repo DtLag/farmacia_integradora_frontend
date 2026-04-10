@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useCartStore } from '@/stores/cart'
-import ClientSearchBar from '@/components/ClientSearchBar.vue'
+import ClientSearchBar from './ClientSearchBar.vue'
 
 const authStore = useAuthStore()
 const cartStore = useCartStore()
@@ -19,10 +19,10 @@ const emit = defineEmits(['onSearch'])
 </script>
 
 <template>
-    <nav class="w-full bg-white shadow-sm border-b border-gray-100 sticky top-0 z-50">
+    <nav class="w-full bg-gray-900 shadow-sm border-b border-gray-100 sticky top-0 z-50">
         <div class="px-6 max-w-7xl mx-auto flex items-center justify-between h-16">
-            <RouterLink to="/" class="text-blue-600 font-bold text-xl flex items-center gap-2">
-                <i class="fas fa-clinic-medical"></i> Farmacia
+            <RouterLink to="/" class="text-blue-600 font-bold text-xl flex items-center gap-2 text-white">
+                <i class="fas fa-clinic-medical text-blue-400"></i> Farmacia
             </RouterLink>
 
             <div class="hidden md:block flex-1 max-w-lg mx-8">
@@ -31,14 +31,24 @@ const emit = defineEmits(['onSearch'])
 
             <div class="flex items-center gap-6">
                 <RouterLink to="/cart" class="relative text-gray-600 hover:text-blue-600 transition">
-                <i class="fas fa-shopping-cart text-xl"></i>
+                <i class="fas fa-shopping-cart text-xl text-white hover:text-blue-600"></i>
                 <span v-if="cartStore.totalItems > 0" class="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
                     {{ cartStore.totalItems }}
                 </span>
                 </RouterLink>
 
+                <RouterLink to="/products" class="text-sm font-medium hover:text-blue-600 text-white">
+                    Productos
+                </RouterLink>
+
                 <div v-if="authStore.isAuthenticated" class="hidden sm:flex items-center gap-3 border-l pl-4">
-                    <RouterLink to="/profile" class="text-sm font-medium text-gray-700 hover:text-blue-600">
+                    <RouterLink to="/my-orders" class="text-sm font-medium text-white hover:text-blue-600">
+                        Mis Pedidos
+                    </RouterLink>
+                </div>
+
+                <div v-if="authStore.isAuthenticated" class="hidden sm:flex items-center gap-3 border-l pl-4">
+                    <RouterLink to="/profile" class="text-sm font-medium text-white hover:text-blue-600">
                         {{ authStore.user?.name }}
                     </RouterLink>
                     <RouterLink to="/">
@@ -49,7 +59,7 @@ const emit = defineEmits(['onSearch'])
                 </div>
 
                 <div v-else class="hidden sm:flex items-center gap-3">
-                    <RouterLink to="/customer/login" class="text-sm font-medium text-gray-600 hover:text-blue-600">
+                    <RouterLink to="/customer/login" class="text-sm font-medium text-gray-600 hover:text-blue-600 text-white">
                     Ingresar
                     </RouterLink>
                 </div>

@@ -13,7 +13,7 @@ import SuccessfulSale from '@/components/SuccessfulSale.vue'
 import SalesReport from '@/components/SalesReport.vue'
 import InventoryReport from '@/components/InventoryReport.vue'
 import UserReport from '@/components/UserReport.vue'
-import HomeView from '@/views/HomeView.vue'
+import HomeView from '@/views/Customer/Landing/HomeView.vue'
 import CustomerLoginView from '@/views/Customer/Auth/Login.vue'
 import CustomerRegisterView from '@/views/Customer/Auth/Register.vue'
 
