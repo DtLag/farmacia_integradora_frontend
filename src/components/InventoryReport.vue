@@ -23,7 +23,7 @@ async function getReport() {
   }
 
   try {
-    let url = `/inventory/report?period=${selectedPeriod.value}`
+    let url = `/report/inventory?period=${selectedPeriod.value}`
 
     if (selectedPeriod.value === 'custom') {
       if (!startDate.value || !endDate.value) {
@@ -85,28 +85,22 @@ onMounted(() => {
           <option value="week">Últimos 7 días</option>
           <option value="month">Último mes</option>
           <option value="custom">Personalizado</option>
-          <option value="historical">Histórico</option>
         </select>
       </div>
-      <input
-        v-if="selectedPeriod === 'custom'"
-        type="date"
-        class="rounded-xl h-20"
-        placeholder="Desde"
-        v-model="startDate"
-      />
-      <input
-        v-if="selectedPeriod === 'custom'"
-        type="date"
-        class="rounded-xl h-20"
-        placeholder="Hasta"
-        v-model="endDate"
-      />
+
+      <div v-if="selectedPeriod === 'custom'" class="flex flex-col">
+        <label class="text-xs mb-1">Desde</label>
+        <input type="date" class="rounded-xl h-20" placeholder="Desde" v-model="startDate" />
+      </div>
+      <div v-if="selectedPeriod === 'custom'" class="flex flex-col">
+        <label class="text-xs mb-1">Hasta</label>
+        <input type="date" class="rounded-xl h-20" placeholder="Hasta" v-model="endDate" />
+      </div>
     </div>
     <div class="m-6">
-      <p v-if="isLoading">Cargando...</p>
-      <p v-if="errorMessage">{{ errorMessage }}</p>
-
+      <p v-if="errorMessage" class="text-gray-500 text-sm text-center animate-pulse">
+        {{ errorMessage }}
+      </p>
       <table
         v-if="report.length"
         class="w-full border border-gray-800 rounded-lg overflow-hidden text-center"
@@ -135,13 +129,15 @@ onMounted(() => {
             <td>{{ item.cantidad_ordenes_completadas }}</td>
             <td>{{ item.cantidad_ordenes_canceladas }}</td>
             <td>{{ item.movimiento_real }}</td>
-            <td>{{ item.porcentaje_rotacion }}</td>
+            <td>{{ item.porcentaje_rotacion }}%</td>
             <td>{{ item.clasificacion_rotacion }}</td>
           </tr>
         </tbody>
       </table>
 
-      <p v-else-if="!isLoading">No hay datos</p>
+      <p class="text-gray-500 text-sm text-center animate-pulse" v-else-if="!isLoading">
+        No hay datos
+      </p>
     </div>
   </div>
 </template>
