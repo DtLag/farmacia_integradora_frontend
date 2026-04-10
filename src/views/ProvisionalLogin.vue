@@ -20,9 +20,8 @@ async function Login() {
         'Content-Type': 'application/json',
         Accept: 'application/json',
       },
-      credentials: 'include',
-      body: JSON.stringify(credenciales.value),
-    })
+      body: JSON.stringify(credenciales.value)
+    });
 
     if (!response.ok) {
       throw new Error(`Error HTTP: ${response.status}`)
