@@ -1,41 +1,30 @@
 <script setup lang="ts">
-import { useAuthStore } from '@/stores/auth.ts'
 import { ref } from 'vue'
-import { useFetch } from '@vueuse/core'
-import router from '@/router'
+import { useAuthStore } from '@/stores/auth'
+import { useRouter } from 'vue-router'
 import type { Credentials } from '@/types/types.ts'
+import { usePublicApi } from '@/composables/usePublicApi'
 
 const authStore = useAuthStore()
+const router = useRouter()
 
 const credenciales = ref<Credentials>({
   email: 'admin@farmacia.com',
   password: 'password',
 })
 
-async function Login() {
+async function login() {
   try {
-    const response = await fetch('http://127.0.0.1:8000/api/login/staff', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      },
-      body: JSON.stringify(credenciales.value)
-    });
-
-    if (!response.ok) {
-      throw new Error(`Error HTTP: ${response.status}`)
+    const { data, error: fetchError } = await usePublicApi('login/staff').post(credenciales.value).json()
+    if (fetchError.value) {
+      alert('Credenciales incorrectas.')
     }
 
-    const data = await response.json()
-
-    if (data && data.token) {
-      authStore.logIn(data.token, data.user)
-      router.push('/dashboard')
-    }
+    authStore.logIn(data.value.token, data.value.user)
+    await router.push('/dashboard')
   } catch (error) {
     console.error('Error en el login:', error)
-    alert('Credenciales incorrectas o error de conexión con el servidor.')
+    console.log('Error en el login:', error instanceof Error ? error.message : error)
   }
 }
 </script>
@@ -47,7 +36,7 @@ async function Login() {
         <h1>Iniciar sesión</h1>
       </div>
 
-      <form @submit.prevent="Login">
+      <form @submit.prevent="login">
         <div class="input-group">
           <label for="email">Correo electrónico</label>
           <input
