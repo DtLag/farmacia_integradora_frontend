@@ -5,7 +5,7 @@ import ProductCard from '@/components/ProductCard.vue'
 import { usePublicApi } from '@/composables/usePublicApi'
 import type { Product } from '@/types/types.ts'
 import ClientNavbar from '@/components/Customer/ClientNavbar.vue'
-import fondoLanding from '@/assets/img/landingPage/fondolanding.png'
+import fondoLanding from '@/assets/img/landingPage/fondoLanding.png'
 
 const products = ref<Product[]>([])
 const isFetching = ref(false)
