@@ -16,6 +16,7 @@ import UserReport from '@/components/UserReport.vue'
 import HomeView from '@/views/Customer/Landing/HomeView.vue'
 import CustomerLoginView from '@/views/Customer/Auth/Login.vue'
 import CustomerRegisterView from '@/views/Customer/Auth/Register.vue'
+import ForgotPasswordModal from '@/components/Customer/Auth/ForgotPasswordModal.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -48,6 +49,11 @@ const router = createRouter({
           path: 'register',
           name: 'customer-register',
           component: CustomerRegisterView,
+        },
+        {
+          path: 'forgot-password',
+          name: 'customer-forgot-password',
+          component: ForgotPasswordModal,
         }
       ]
     },

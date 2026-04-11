@@ -19,7 +19,7 @@ const emit = defineEmits(['onSearch'])
 </script>
 
 <template>
-    <nav class="w-full bg-gray-900 shadow-sm border-b border-gray-100 sticky top-0 z-50">
+    <nav class="w-full bg-[#0B369E] shadow-sm border-b border-gray-100 sticky top-0 z-50">
         <div class="px-6 max-w-7xl mx-auto flex items-center justify-between h-16">
             <RouterLink to="/" class="text-blue-600 font-bold text-xl flex items-center gap-2 text-white">
                 <i class="fas fa-clinic-medical text-blue-400"></i> Farmacia

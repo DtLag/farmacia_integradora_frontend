@@ -13,7 +13,7 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+  <div class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 backdrop-blur-sm">
     <div class="bg-[#EAF4FC] p-6 rounded-lg w-80 text-center">
       <h2 class="text-xl font-semibold mb-4">Verificar correo</h2>
       <p class="text-sm mb-4">

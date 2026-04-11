@@ -1,7 +1,14 @@
 <script setup lang="ts">
-import { reactive } from 'vue'
+import { reactive, ref } from 'vue'
 import { useCustomerAuth } from '@/composables/customer/useCustomerAuth'
 import type { Credentials } from '@/types/types'
+import ForgotPasswordModal from './ForgotPasswordModal.vue'
+import VerifyResetModal from './VerifyResetModal.vue'
+import ResetPasswordModal from './ResetPasswordModal.vue'
+
+const activeModal = ref<'forgot' | 'verify' | 'reset' | null>(null)
+const recoverEmail = ref('')
+const recoverCode = ref('')
 
 const form = reactive<Credentials>({
   email: '',
@@ -12,6 +19,21 @@ const { loading, error, login } = useCustomerAuth()
 
 async function onSubmit() {
   await login({ ...form })
+}
+
+const handleForgotSuccess = (email: string) => {
+  recoverEmail.value = email
+  activeModal.value = 'verify'
+}
+
+const handleVerifySuccess = (code: string) => {
+  recoverCode.value = code
+  activeModal.value = 'reset'
+}
+
+const handleResetSuccess = () => {
+  activeModal.value = null
+  alert('Contraseña actualizada correctamente.')
 }
 </script>
 
@@ -40,7 +62,7 @@ async function onSubmit() {
     </div>
 
     <div>
-      <a href="#" class="text-sm hover:underline mb-10 inline-block text-[#205DB3]">¿Olvidaste tu contraseña?</a>
+      <button type="button" @click="activeModal = 'forgot'" class="text-sm hover:underline mb-10 inline-block text-[#205DB3]">¿Olvidaste tu contraseña?</button>
     </div>
 
     <p v-if="error" class="text-red-600 text-sm mt-2">{{ error }}</p>
@@ -59,4 +81,25 @@ async function onSubmit() {
       Regístrate
     </RouterLink>
   </form>
+
+  <ForgotPasswordModal 
+  v-if="activeModal === 'forgot'"
+  @close="activeModal = null"
+  @success="handleForgotSuccess"
+  />
+
+  <VerifyResetModal 
+  v-if="activeModal === 'verify'"
+  :email="recoverEmail"
+  @close="activeModal = null"
+  @success="handleVerifySuccess"
+  />
+
+  <ResetPasswordModal
+  v-if="activeModal === 'reset'"
+  :email="recoverEmail"
+  :code="recoverCode"
+  @close="activeModal = null"
+  @success="handleResetSuccess"
+  />
 </template>
