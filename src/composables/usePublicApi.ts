@@ -1,7 +1,7 @@
 import { createFetch } from '@vueuse/core'
 
 export const usePublicApi = createFetch({
-  baseUrl: 'http://127.0.0.1:8000/api/',
+  baseUrl: 'https://api.harold-dev.me/api/',
 
   options: {
     beforeFetch({ options }) {
