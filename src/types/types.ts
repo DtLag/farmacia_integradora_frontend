@@ -8,6 +8,12 @@ export interface Credentials {
   email: string
   password: string
 }
+export interface ProductReceptions {
+  id: number;
+  reception_date: string;
+  expiration_date: string;
+  amount: number;
+}
 export interface Product {
   id: number
   name: string
@@ -16,6 +22,8 @@ export interface Product {
   location: string
   stock: number
   image_url: string
+  min_stock: number;
+  product_receptions?: ProductReceptions[];
 }
 export interface PaymentMethod {
   id: number
@@ -122,4 +130,24 @@ export interface Order {
     method_name: string;
   };
   order_details: OrderDetail[];
+}
+
+export interface Audits {
+  id: number;
+  affected_module: string;
+  action_performed: string;
+  date_time: string;
+  detail: string;
+  user: {
+    id: number;
+    name: string;
+    last_name: string;
+    email: string;
+    user_id: string;
+    
+    role: {
+      id: number;
+      name: string;
+    };
+  }
 }
