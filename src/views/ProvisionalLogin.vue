@@ -21,6 +21,7 @@ async function login() {
     }
 
     authStore.logIn(data.value.token, data.value.user)
+
     await router.push('/dashboard')
   } catch (error) {
     console.error('Error en el login:', error)

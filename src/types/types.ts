@@ -2,7 +2,7 @@ export interface User {
   id: number
   name: string
   email: string
-  role: string
+  role_id: number
 }
 export interface Credentials {
   email: string
@@ -144,7 +144,7 @@ export interface Audits {
     last_name: string;
     email: string;
     user_id: string;
-    
+
     role: {
       id: number;
       name: string;

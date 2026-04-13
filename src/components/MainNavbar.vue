@@ -18,7 +18,7 @@ const activeClass = 'text-white bg-white/20 shadow-inner'
 </script>
 
 <template>
-  <nav class="w-full bg-[#375ab4] shadow-md ">
+  <nav class="w-full bg-[#375ab4] shadow-md">
     <div class="px-6">
       <div class="flex items-center h-14">
         <!-- IZQUIERDA -->
@@ -29,31 +29,51 @@ const activeClass = 'text-white bg-white/20 shadow-inner'
           </a>
 
           <div class="hidden lg:flex items-center gap-0.5">
-            <RouterLink to="/pos" :class="linkClass" :active-class="activeClass">
+            <RouterLink to="pos" :class="linkClass" :active-class="activeClass">
               <i class="fas fa-cash-register text-xs"></i> Punto de Venta
             </RouterLink>
 
-            <RouterLink to="/pickup" :class="linkClass" :active-class="activeClass">
+            <RouterLink to="pickup" :class="linkClass" :active-class="activeClass">
               <i class="fa-solid fa-envelope text-xs"></i> Pick Up
             </RouterLink>
 
-            <RouterLink to="/inventory" :class="linkClass" :active-class="activeClass">
+            <RouterLink
+              v-if="authStore.user?.role === 'admin'"
+              to="inventory"
+              :class="linkClass"
+              :active-class="activeClass"
+            >
               <i class="fas fa-boxes text-xs"></i> Inventario
             </RouterLink>
 
-            <RouterLink to="/alerts" :class="linkClass" :active-class="activeClass">
+            <RouterLink to="alerts" :class="linkClass" :active-class="activeClass">
               <i class="fas fa-exclamation-triangle text-xs"></i> Alertas
             </RouterLink>
 
-            <RouterLink to="/reports" :class="linkClass" :active-class="activeClass">
+            <RouterLink
+              v-if="authStore.user?.role === 'admin'"
+              to="reports"
+              :class="linkClass"
+              :active-class="activeClass"
+            >
               <i class="fa-solid fa-chart-bar text-xs"></i> Reportes
             </RouterLink>
 
-            <RouterLink to="/audits" :class="linkClass" :active-class="activeClass">
+            <RouterLink
+              v-if="authStore.user?.role === 'admin'"
+              to="audits"
+              :class="linkClass"
+              :active-class="activeClass"
+            >
               <i class="fa-solid fa-eye-slash text-xs"></i> Auditorias
             </RouterLink>
 
-            <RouterLink to="/users" :class="linkClass" :active-class="activeClass">
+            <RouterLink
+              v-if="authStore.user?.role === 'admin'"
+              to="users"
+              :class="linkClass"
+              :active-class="activeClass"
+            >
               <i class="fa-solid fa-user text-xs"></i> Usuarios
             </RouterLink>
           </div>
@@ -66,7 +86,10 @@ const activeClass = 'text-white bg-white/20 shadow-inner'
 
             <div class="leading-tight text-right">
               <p class="text-white/40 text-[10px] uppercase tracking-wide">Usuario</p>
-              <p v-if="authStore.user" class="text-white font-medium text-sm truncate max-w-[120px]">
+              <p
+                v-if="authStore.user"
+                class="text-white font-medium text-sm truncate max-w-[120px]"
+              >
                 {{ authStore.user.name }}
               </p>
             </div>
@@ -170,10 +193,12 @@ const activeClass = 'text-white bg-white/20 shadow-inner'
 
         <div class="flex items-center justify-between mt-3 pt-3 border-t border-white/10">
           <div class="flex items-center gap-2">
-
             <div>
               <p class="text-white/40 text-[10px] uppercase">Usuario</p>
-              <p v-if="authStore.user" class="text-white font-medium text-sm truncate max-w-[120px]">
+              <p
+                v-if="authStore.user"
+                class="text-white font-medium text-sm truncate max-w-[120px]"
+              >
                 {{ authStore.user.name }}
               </p>
             </div>
