@@ -1,7 +1,9 @@
 export interface User {
   id: number
   name: string
+  last_name: string
   email: string
+  user_id: string
   role: string
 }
 export interface Credentials {
@@ -144,7 +146,7 @@ export interface Audits {
     last_name: string;
     email: string;
     user_id: string;
-    
+
     role: {
       id: number;
       name: string;

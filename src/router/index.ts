@@ -17,6 +17,7 @@ import HomeView from '@/views/Customer/Landing/HomeView.vue'
 import CustomerLoginView from '@/views/Customer/Auth/Login.vue'
 import CustomerRegisterView from '@/views/Customer/Auth/Register.vue'
 import ForgotPasswordModal from '@/components/Customer/Auth/ForgotPasswordModal.vue'
+import UnauthorizedView from '@/views/UnauthorizedView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -54,8 +55,8 @@ const router = createRouter({
           path: 'forgot-password',
           name: 'customer-forgot-password',
           component: ForgotPasswordModal,
-        }
-      ]
+        },
+      ],
     },
     {
       path: '/dashboard',
@@ -64,82 +65,111 @@ const router = createRouter({
       children: [
         {
           path: '',
-          redirect: '/pos',
+          redirect: '/dashboard/pos',
         },
         {
-          path: '/pos',
+          path: 'pos',
           name: 'pos',
           component: PosView,
         },
         {
-          path: '/pickup',
+          path: 'pickup',
           name: 'pickup',
           component: PickUpView,
         },
         {
-          path: '/inventory',
+          path: 'inventory',
           name: 'inventory',
           component: InventoryView,
+          meta: { requiresAuth: true, roles: ['Administrador'] }
         },
         {
-          path: '/alerts',
+          path: 'alerts',
           name: 'alerts',
           component: AlertsView,
         },
         {
-          path: '/reports',
+          path: 'reports',
           name: 'reports',
           component: ReportsView,
+          meta: { requiresAuth: true, roles: ['Administrador'] },
           children: [
             {
               path: '',
-              redirect: '/reports/sales',
+              redirect: '/dashboard/reports/reports-sales',
+              meta: { requiresAuth: true, roles: [1] },
             },
             {
-              path: '/reports/sales',
+              path: 'reports-sales',
               name: 'salesReport',
               component: SalesReport,
+              meta: { requiresAuth: true, roles: ['Administrador'] },
             },
             {
-              path: '/reports/inventory',
+              path: 'reports-inventory',
               name: 'inventoryReport',
               component: InventoryReport,
+              meta: { requiresAuth: true, roles: ['Administrador'] },
             },
             {
-              path: '/reports/users',
+              path: 'reports-users',
               name: 'usersReport',
               component: UserReport,
+              meta: { requiresAuth: true, roles: ['Administrador'] },
             },
           ],
         },
         {
-          path: '/audits',
+          path: 'audits',
           name: 'audits',
           component: AuditsView,
+          meta: { requiresAuth: true, roles: ['Administrador'] },
         },
         {
-          path: '/users',
+          path: 'users',
           name: 'users',
           component: UsersView,
+          meta: { requiresAuth: true, roles: ['Administrador'] },
         },
       ],
     },
+    {
+      path: '/unauthorized',
+      name: 'unauthorized',
+      component: UnauthorizedView,
+      meta: { requiresAuth: true },
+    },
   ],
 })
-router.beforeEach((to, from) => { 
+
+
+router.beforeEach((to) => {
   const authStore = useAuthStore()
 
-  if (to.matched.some((record) => record.meta.requiresAuth)) {
-    if (!authStore.token) {
-      return { name: 'login' } 
-    } else {
-      return true  
-    }
-  } else if (to.name === 'login' && authStore.token) {
-    return { name: 'dashboard' }  
-  } else {
-    return true  
+  const isAuthenticated = !!authStore.token && !!authStore.user
+  const userRole = authStore.user?.role
+
+  if (to.name === 'login' && !isAuthenticated) {
+    return true
   }
+
+  if (to.matched.some((record) => record.meta.requiresAuth) && !isAuthenticated) {
+    return { name: 'login' }
+  }
+
+  if (to.name === 'login' && isAuthenticated) {
+    return { name: 'pos' }
+  }
+
+  const allowedRoles = to.matched
+    .map((record) => record.meta.roles)
+    .find((roles) => Array.isArray(roles)) as string[] | undefined
+
+  if (allowedRoles && (!userRole || !allowedRoles.includes(userRole))) {
+    return { name: 'unauthorized' }
+  }
+
+  return true
 })
 
 export default router

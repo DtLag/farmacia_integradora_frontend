@@ -6,7 +6,7 @@ import { onMounted, ref, watch } from 'vue'
 const users = ref<staff[]>()
 const errorMessage = ref<string>('')
 const isLoading = ref<boolean>(false)
-const selectedUser = ref('admin admin')
+const selectedUser = ref('Harold Admin')
 const startDate = ref('2026-04-01')
 const endDate = ref('2026-04-05')
 const metrics = ref<UserMetricsItem[]>([])
