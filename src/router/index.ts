@@ -81,7 +81,7 @@ const router = createRouter({
           path: 'inventory',
           name: 'inventory',
           component: InventoryView,
-          meta: { requiresAuth: true, roles: [1] },
+          meta: { requiresAuth: true, roles: ['Administrador'] }
         },
         {
           path: 'alerts',
@@ -92,7 +92,7 @@ const router = createRouter({
           path: 'reports',
           name: 'reports',
           component: ReportsView,
-          meta: { requiresAuth: true, roles: [1] },
+          meta: { requiresAuth: true, roles: ['Administrador'] },
           children: [
             {
               path: '',
@@ -103,19 +103,19 @@ const router = createRouter({
               path: 'reports-sales',
               name: 'salesReport',
               component: SalesReport,
-              meta: { requiresAuth: true, roles: [1] },
+              meta: { requiresAuth: true, roles: ['Administrador'] },
             },
             {
               path: 'reports-inventory',
               name: 'inventoryReport',
               component: InventoryReport,
-              meta: { requiresAuth: true, roles: [1] },
+              meta: { requiresAuth: true, roles: ['Administrador'] },
             },
             {
               path: 'reports-users',
               name: 'usersReport',
               component: UserReport,
-              meta: { requiresAuth: true, roles: [1] },
+              meta: { requiresAuth: true, roles: ['Administrador'] },
             },
           ],
         },
@@ -123,13 +123,13 @@ const router = createRouter({
           path: 'audits',
           name: 'audits',
           component: AuditsView,
-          meta: { requiresAuth: true, roles: [1] },
+          meta: { requiresAuth: true, roles: ['Administrador'] },
         },
         {
           path: 'users',
           name: 'users',
           component: UsersView,
-          meta: { requiresAuth: true, roles: [1] },
+          meta: { requiresAuth: true, roles: ['Administrador'] },
         },
       ],
     },
@@ -146,10 +146,12 @@ const router = createRouter({
 router.beforeEach((to) => {
   const authStore = useAuthStore()
 
-  const isAuthenticated = !!authStore.token
-  const userRole = authStore.user?.role_id
+  const isAuthenticated = !!authStore.token && !!authStore.user
+  const userRole = authStore.user?.role
 
-  console.log('usuario completo:', authStore.user)
+  if (to.name === 'login' && !isAuthenticated) {
+    return true
+  }
 
   if (to.matched.some((record) => record.meta.requiresAuth) && !isAuthenticated) {
     return { name: 'login' }
@@ -161,11 +163,12 @@ router.beforeEach((to) => {
 
   const allowedRoles = to.matched
     .map((record) => record.meta.roles)
-    .find((roles) => Array.isArray(roles)) as number[] | undefined
+    .find((roles) => Array.isArray(roles)) as string[] | undefined
 
-  if (allowedRoles && userRole !== undefined && !allowedRoles.includes(userRole)) {
+  if (allowedRoles && (!userRole || !allowedRoles.includes(userRole))) {
     return { name: 'unauthorized' }
   }
+
   return true
 })
 

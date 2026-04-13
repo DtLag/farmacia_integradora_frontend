@@ -7,21 +7,17 @@ const active = ref('Ventas')
 <template>
   <div class="layout">
     <aside class="sidebar">
-      <div class="nav-item" :class="{ active: active === 'Ventas' }" @click="active = 'Ventas'">
-        <RouterLink to="/reports/sales" class="link">Ventas</RouterLink>
-      </div>
+      <RouterLink :to="{ name: 'salesReport' }" class="nav-item link" active-class="active">
+        Ventas
+      </RouterLink>
 
-      <div
-        class="nav-item"
-        :class="{ active: active === 'Inventario' }"
-        @click="active = 'Inventario'"
-      >
-        <RouterLink to="/reports/inventory" class="link">Inventario</RouterLink>
-      </div>
+      <RouterLink :to="{ name: 'inventoryReport' }" class="nav-item link" active-class="active">
+        Inventario
+      </RouterLink>
 
-      <div class="nav-item" :class="{ active: active === 'Usuario' }" @click="active = 'Usuario'">
-        <RouterLink to="/reports/users" class="link">Usuarios</RouterLink>
-      </div>
+      <RouterLink :to="{ name: 'usersReport' }" class="nav-item link" active-class="active">
+        Usuarios
+      </RouterLink>
     </aside>
 
     <main class="content">
@@ -31,34 +27,6 @@ const active = ref('Ventas')
 </template>
 
 <style scoped>
-.sidebar {
-  width: 250px;
-  background: #dce8f8;
-  padding: 20px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-
-  height: 100vh;
-}
-
-.nav-item {
-  padding: 10px 14px;
-  border-radius: 10px;
-  cursor: pointer;
-  color: #4a6fa5;
-  transition: all 0.2s ease;
-}
-
-.nav-item:hover {
-  background: rgba(255, 255, 255, 0.5);
-}
-
-.nav-item.active {
-  background: white;
-  color: #1e3a6e;
-  font-weight: 600;
-}
 .layout {
   display: flex;
   height: 100vh;
@@ -73,8 +41,32 @@ const active = ref('Ventas')
   gap: 6px;
 }
 
+.nav-item {
+  padding: 10px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  color: #4a6fa5;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: block;
+}
+
+.nav-item:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.nav-item.active {
+  background: white;
+  color: #1e3a6e;
+  font-weight: 600;
+}
+
 .content {
-  flex: 1; /* ocupa todo lo que sobra */
+  flex: 1;
   padding: 20px;
+}
+
+.link {
+  text-decoration: none;
 }
 </style>

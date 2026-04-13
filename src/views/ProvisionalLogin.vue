@@ -15,12 +15,17 @@ const credenciales = ref<Credentials>({
 
 async function login() {
   try {
-    const { data, error: fetchError } = await usePublicApi('login/staff').post(credenciales.value).json()
+    const { data, error: fetchError } = await usePublicApi('login/staff')
+      .post(credenciales.value)
+      .json()
     if (fetchError.value) {
       alert('Credenciales incorrectas.')
     }
 
     authStore.logIn(data.value.token, data.value.user)
+
+    console.log('respuesta completa login:', data.value)
+    console.log('usuario login:', data.value.user)
 
     await router.push('/dashboard')
   } catch (error) {

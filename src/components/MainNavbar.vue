@@ -29,30 +29,30 @@ const activeClass = 'text-white bg-white/20 shadow-inner'
           </a>
 
           <div class="hidden lg:flex items-center gap-0.5">
-            <RouterLink to="pos" :class="linkClass" :active-class="activeClass">
+            <RouterLink to="/dashboard/pos" :class="linkClass" :active-class="activeClass">
               <i class="fas fa-cash-register text-xs"></i> Punto de Venta
             </RouterLink>
 
-            <RouterLink to="pickup" :class="linkClass" :active-class="activeClass">
+            <RouterLink to="/dashboard/pickup" :class="linkClass" :active-class="activeClass">
               <i class="fa-solid fa-envelope text-xs"></i> Pick Up
             </RouterLink>
 
             <RouterLink
-              v-if="authStore.user?.role === 'admin'"
-              to="inventory"
+              v-if="authStore.user?.role === 'Administrador'"
+              to="/dashboard/inventory"
               :class="linkClass"
               :active-class="activeClass"
             >
               <i class="fas fa-boxes text-xs"></i> Inventario
             </RouterLink>
 
-            <RouterLink to="alerts" :class="linkClass" :active-class="activeClass">
+            <RouterLink to="/dashboard/alerts" :class="linkClass" :active-class="activeClass">
               <i class="fas fa-exclamation-triangle text-xs"></i> Alertas
             </RouterLink>
 
             <RouterLink
-              v-if="authStore.user?.role === 'admin'"
-              to="reports"
+              v-if="authStore.user?.role === 'Administrador'"
+              to="/dashboard/reports"
               :class="linkClass"
               :active-class="activeClass"
             >
@@ -60,8 +60,8 @@ const activeClass = 'text-white bg-white/20 shadow-inner'
             </RouterLink>
 
             <RouterLink
-              v-if="authStore.user?.role === 'admin'"
-              to="audits"
+              v-if="authStore.user?.role === 'Administrador'"
+              to="/dashboard/audits"
               :class="linkClass"
               :active-class="activeClass"
             >
@@ -69,8 +69,8 @@ const activeClass = 'text-white bg-white/20 shadow-inner'
             </RouterLink>
 
             <RouterLink
-              v-if="authStore.user?.role === 'admin'"
-              to="users"
+              v-if="authStore.user?.role === 'Administrador'"
+              to="/dashboard/users"
               :class="linkClass"
               :active-class="activeClass"
             >

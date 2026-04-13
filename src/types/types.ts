@@ -1,8 +1,10 @@
 export interface User {
   id: number
   name: string
+  last_name: string
   email: string
-  role_id: number
+  user_id: string
+  role: string
 }
 export interface Credentials {
   email: string
