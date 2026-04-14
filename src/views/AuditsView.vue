@@ -53,7 +53,7 @@ onUnmounted(() => {
 <template>
   <div class="p-6 space-y-6">
 
-    <div class="rounded-xl shadow-md overflow-hidden border">
+    <div class="rounded-xl shadow-md overflow-hidden">
       <div class="bg-teal-500 text-white px-4 py-3">
         <h2 class="text-lg font-semibold">Filtros de Auditoría</h2>
       </div>
@@ -62,17 +62,17 @@ onUnmounted(() => {
       <div class="grid grid-cols- md:grid-cols-5 gap-4 items-end p-4">
         <div>
           <label class="block text-sm text-gray-600">Fecha Desde</label>
-          <input v-model="start" type="date" class="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition" placeholder="AAA-MM-DD" />
+          <input v-model="start" type="date" class="w-full border border-gray-200 rounded shadow-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition" placeholder="AAA-MM-DD" />
         </div>
 
         <div>
           <label class="block text-sm text-gray-600">Fecha Hasta</label>
-          <input v-model="end" type="date" class="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition" placeholder="AAA-MM-DD" />
+          <input v-model="end" type="date" class="w-full border border-gray-200 rounded shadow-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition" placeholder="AAA-MM-DD" />
         </div>
 
         <div>
           <label class="block text-sm text-gray-600">Usuario</label>
-          <select v-model="usuario" class="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition">
+          <select v-model="usuario" class="w-full border border-gray-200 rounded shadow-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition">
             <option disabled value="">Seleccione un usuario</option>
             <option v-for="u in staff?.data" :key="u.id" :value="u.id"> {{ u.name }} </option>
           </select>
@@ -80,20 +80,20 @@ onUnmounted(() => {
 
         <div>
           <label class="block text-sm text-gray-600">Módulo</label>
-          <select v-model="modulo"  class="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition">
+          <select v-model="modulo"  class="w-full border border-gray-200 rounded shadow-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition">
             <option disabled value="">Seleccione un módulo</option>
-            <option>Productos</option>
-            <option>orders</option>
-            <option>Venta</option>
-            <option>Movimientos de Inventario</option>
+            <option>Update</option>
+            <option>Nueva Venta</option>
+            <option>Actualizado</option>
+            <option>Output</option>
           </select>
         </div>
 
         <div class="flex gap-2">
-          <button class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:opacity-90 transition shadow cursor-pointer" @click="filtrar">
+          <button class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:opacity-90 transition shadow-md cursor-pointer" @click="filtrar">
             Buscar
           </button>
-          <button class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition cursor-pointer" @click="limpiar">
+          <button class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition shadow-md cursor-pointer" @click="limpiar">
             Limpiar
           </button>
         </div>
@@ -101,7 +101,7 @@ onUnmounted(() => {
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div class="bg-white border rounded-xl p-4 shadow-sm flex items-center gap-4">
+      <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-md flex items-center gap-4">
         <div class="w-2 h-full bg-blue-500 rounded"></div>
         <div>
           <p class="text-2xl font-bold">{{auditsData?.data.length}}</p>
@@ -109,7 +109,7 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <div class="bg-white border rounded-xl p-4 shadow-sm flex items-center gap-4">
+      <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-md flex items-center gap-4">
         <div class="w-2 h-full bg-green-500 rounded"></div>
         <div>
           <p class="text-2xl font-bold">{{ todayAudits?.data.length }}</p>
@@ -118,7 +118,7 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <div class="bg-white border rounded-xl shadow-sm overflow-hidden">
+    <div class="bg-white border border-gray-200 rounded-xl shadow-md overflow-hidden">
       <table class="w-full text-sm">
         <thead class="bg-gray-300 text-gray-800">
           <tr>

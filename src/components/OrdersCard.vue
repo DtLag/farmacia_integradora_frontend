@@ -29,7 +29,7 @@ function completar(){
 
 <template>
   <div @click="select" class="cursor-pointer group"> 
-    <div :class="'bg-white rounded-2xl border transition-all duration-200 flex flex-col h-full'">    
+    <div :class="'bg-white rounded-2xl shadow-xl hover:shadow-xl transition-all duration-200 flex flex-col h-full'">    
       <div class="p-4 border-b border-slate-50">
         <div class="flex justify-between items-start mb-1">
           <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider"> No. Pedido: #{{ props.order.id }} </span>          

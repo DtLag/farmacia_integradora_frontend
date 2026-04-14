@@ -7,10 +7,10 @@ function calcularHora(fecha: string){
   const date = new Date(fecha.replace(' ', 'T'));
 
   const hora = date.toLocaleTimeString('es-MX', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
   });
     
   return hora;
@@ -24,7 +24,7 @@ function sacarFecha(time: string){
 </script>
 
 <template>
-  <tr class="border-t hover:bg-gray-50">
+  <tr class="border-t border-gray-200 hover:bg-gray-50">
     <td class="px-4 py-3 font-medium text-gray-700">
       {{ audits?.id }}
     </td>
