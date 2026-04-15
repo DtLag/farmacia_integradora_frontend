@@ -12,6 +12,11 @@ watch(query, (newVal) => {
     emit('search', newVal)
   }, 300)
 })
+
+function onInput(e: Event){
+  const target = e.target as HTMLInputElement
+  emit('search', target.value)
+}
 </script>
 
 <template>
