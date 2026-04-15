@@ -129,7 +129,7 @@ const activeClass = 'text-white bg-white/20 shadow-inner'
     <div v-show="menuOpen" class="lg:hidden border-t border-white/10 px-4 pb-4">
       <div class="flex flex-col gap-1 pt-2">
         <RouterLink
-          to="/pos"
+          to="/dashboard/pos"
           :class="linkClass"
           :active-class="activeClass"
           @click="menuOpen = false"
@@ -138,7 +138,7 @@ const activeClass = 'text-white bg-white/20 shadow-inner'
         </RouterLink>
 
         <RouterLink
-          to="/pickup"
+          to="/dashboard/pickup"
           :class="linkClass"
           :active-class="activeClass"
           @click="menuOpen = false"
@@ -147,7 +147,7 @@ const activeClass = 'text-white bg-white/20 shadow-inner'
         </RouterLink>
 
         <RouterLink
-          to="/inventory"
+          to="/dashboard/inventory"
           :class="linkClass"
           :active-class="activeClass"
           @click="menuOpen = false"
@@ -156,7 +156,7 @@ const activeClass = 'text-white bg-white/20 shadow-inner'
         </RouterLink>
 
         <RouterLink
-          to="/alerts"
+          to="/dashboard/alerts"
           :class="linkClass"
           :active-class="activeClass"
           @click="menuOpen = false"
@@ -165,7 +165,7 @@ const activeClass = 'text-white bg-white/20 shadow-inner'
         </RouterLink>
 
         <RouterLink
-          to="/reports"
+          to="/dashboard/reports"
           :class="linkClass"
           :active-class="activeClass"
           @click="menuOpen = false"
@@ -174,7 +174,7 @@ const activeClass = 'text-white bg-white/20 shadow-inner'
         </RouterLink>
 
         <RouterLink
-          to="/audits"
+          to="/dashboard/audits"
           :class="linkClass"
           :active-class="activeClass"
           @click="menuOpen = false"
@@ -183,7 +183,7 @@ const activeClass = 'text-white bg-white/20 shadow-inner'
         </RouterLink>
 
         <RouterLink
-          to="/users"
+          to="/dashboard/users"
           :class="linkClass"
           :active-class="activeClass"
           @click="menuOpen = false"

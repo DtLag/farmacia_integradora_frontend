@@ -60,7 +60,6 @@ const router = createRouter({
     },
     {
       path: '/dashboard',
-      name: 'dashboard',
       component: DashboardView,
       children: [
         {
@@ -90,7 +89,6 @@ const router = createRouter({
         },
         {
           path: 'reports',
-          name: 'reports',
           component: ReportsView,
           meta: { requiresAuth: true, roles: ['Administrador'] },
           children: [
