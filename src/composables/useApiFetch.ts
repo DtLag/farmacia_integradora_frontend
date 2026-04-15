@@ -11,14 +11,25 @@ export const useApi = createFetch({
 
       if (!authStore.token) {
         cancel()
+        
+        // 1. Detectar si estamos en la zona de clientes
+        const path = router.currentRoute.value.path
+        const isCustomerRoute = path.startsWith('/customer') || path === '/cart' || path === '/checkout'
+        const loginPath = isCustomerRoute ? '/customer/login' : '/login'
+
+        router.push({
+          path: loginPath,
+          query: { redirect: router.currentRoute.value.fullPath }
+        })
+
+        return { options }
       }
-      if (authStore.token) {
-        options.headers = {
-          ...options.headers,
-          Authorization: `Bearer ${authStore.token}`,
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        }
+
+      options.headers = {
+        ...options.headers,
+        Authorization: `Bearer ${authStore.token}`,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
       }
 
       return { options }
@@ -28,7 +39,17 @@ export const useApi = createFetch({
       const authStore = useAuthStore()
 
       if (ctx.response?.status === 401) {
-        console.log('401 detectado:', ctx.response)
+        authStore.logOut?.()
+
+        // 2. Detectar también aquí para cuando el token expira o Laravel nos rebota
+        const path = router.currentRoute.value.path
+        const isCustomerRoute = path.startsWith('/customer') || path === '/cart' || path === '/checkout'
+        const loginPath = isCustomerRoute ? '/customer/login' : '/login'
+
+        router.push({
+          path: loginPath,
+          query: { redirect: router.currentRoute.value.fullPath }
+        })
       }
 
       return ctx

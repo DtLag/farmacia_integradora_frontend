@@ -46,7 +46,7 @@ const total = computed(() => {
             <div>
                 <h2 class="font-bold text-lg mb-2">Detalles de la orden #{{ props.order.id }}</h2>
                 <p><strong>Cliente:</strong> {{ props.order.customer?.name }}</p>
-                <p><strong>Empleado encargado:</strong> {{ props.order.employee?.name }} {{ props.order.employee.last_name }}</p>
+                <p><strong>Empleado encargado:</strong> {{ props.order.employee?.name }} {{ props.order.employee?.last_name }}</p>
                 <p><strong>Fecha registro:</strong> {{ props.order.register_date_time }}</p>
                 <p><strong>Fecha máxima:</strong> {{ props.order.scheduled_time }}</p>
                 <p><strong>Método de pago:</strong> {{ props.order.payment?.method_name || 'Cancelado' }}</p>
@@ -88,7 +88,7 @@ const total = computed(() => {
     
             <h2 class="font-bold text-lg mb-2">Detalles de la orden #{{ props.order.id }}</h2>
             <p><strong>Cliente:</strong> {{ props.order.customer?.name }}</p>
-            <p><strong>Empleado encargado:</strong> {{ props.order.employee?.name }} {{ props.order.employee.last_name }}</p>
+            <p><strong>Empleado encargado:</strong> {{ props.order.employee?.name }} {{ props.order.employee?.last_name }}</p>
             <p><strong>Fecha registro:</strong> {{ props.order.register_date_time }}</p>
             <p><strong>Fecha máxima:</strong> {{ props.order.scheduled_time }}</p>
             <p><strong>Método de pago:</strong> {{ props.order.payment?.method_name || 'Cancelado' }}</p>

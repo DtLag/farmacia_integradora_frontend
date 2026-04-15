@@ -32,7 +32,7 @@ const total = computed(() => {
           <div>
             <p class="text-xs uppercase font-bold text-slate-500">Empleado encargado</p>
             <p class="text-slate-700 text-base font-medium">
-              {{ props.order.employee?.name }} {{ props.order.employee.last_name }}
+              {{ props.order.employee?.name }} {{ props.order.employee?.last_name }}
             </p>
           </div>
         </div>

@@ -16,8 +16,10 @@ import UserReport from '@/components/UserReport.vue'
 import HomeView from '@/views/Customer/Landing/HomeView.vue'
 import CustomerLoginView from '@/views/Customer/Auth/Login.vue'
 import CustomerRegisterView from '@/views/Customer/Auth/Register.vue'
-import ForgotPasswordModal from '@/components/Customer/Auth/ForgotPasswordModal.vue'
 import UnauthorizedView from '@/views/UnauthorizedView.vue'
+import ProductsView from '@/views/Customer/Landing/ProductsView.vue'
+import CartView from '@/views/Customer/Landing/CartView.vue'
+import MyOrdersView from '@/views/Customer/Landing/MyOrdersView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -52,10 +54,20 @@ const router = createRouter({
           component: CustomerRegisterView,
         },
         {
-          path: 'forgot-password',
-          name: 'customer-forgot-password',
-          component: ForgotPasswordModal,
+          path: 'products',
+          name: 'products',
+          component: ProductsView,
         },
+        {
+          path: 'cart',
+          name: 'cart',
+          component: CartView,
+        },
+        {
+          path: 'my-orders',
+          name: 'my-orders',
+          component: MyOrdersView,
+        }
       ],
     },
     {
