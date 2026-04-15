@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { usePublicApi } from '@/composables/usePublicApi'
 import type { Product } from '@/types/types'
 import { useCartStore } from '@/stores/cart'
+import { createEchoInstance } from '@/utils/echo'
 
 import ClientNavbar from '@/components/Customer/ClientNavbar.vue'
 import ClientFooter from '@/components/Customer/ClientFooter.vue'
@@ -13,6 +14,8 @@ const products = ref<Product[]>([])
 const loading = ref(false)
 const error = ref('')
 const cartStore = useCartStore()
+
+const echo = createEchoInstance();
 
 function addToCart(product: Product) {
   cartStore.addToCart(product)
@@ -47,7 +50,24 @@ function handleSearch(query: string) {
 
 onMounted(() => {
   fetchProducts()
-})
+
+  echo.channel('public-inventory')
+  .listen('.ProductStockUpdated', (evento: any) => {
+    console.log('📦 Evento WebSockets Recibido:', evento.product);
+
+    const productToUpdate = products.value.find((p: any) => p.id === evento.product.id);
+    
+    if (productToUpdate) {
+      productToUpdate.stock = evento.product.stock;
+      
+      console.log(`¡El stock de ${evento.product.name} se actualizó visualmente a ${evento.product.stock}!`);
+    }
+  });
+});
+
+onUnmounted(() => {
+  echo.leaveChannel('public-inventory')
+});
 </script>
 
 <template>
