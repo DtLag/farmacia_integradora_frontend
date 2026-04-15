@@ -13,7 +13,7 @@ const menuOpen = ref(false)
 
 function logOut() {
   authStore.logOut()
-  router.push('/login')
+  router.push('/')
 }
 
 function closeMenu() {
