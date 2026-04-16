@@ -76,6 +76,16 @@ const activeClass = 'text-white bg-white/20 shadow-inner'
             >
               <i class="fa-solid fa-user text-xs"></i> Usuarios
             </RouterLink>
+
+            <RouterLink
+          to="/dashboard/tickets"
+          :class="linkClass"
+          :active-class="activeClass"
+          @click="menuOpen = false"
+        >
+          <i class="fa-solid fa-ticket text-xs w-4"></i> Tickets
+        </RouterLink>
+        
           </div>
         </div>
 
@@ -189,6 +199,15 @@ const activeClass = 'text-white bg-white/20 shadow-inner'
           @click="menuOpen = false"
         >
           <i class="fa-solid fa-user text-xs w-4"></i> Usuarios
+        </RouterLink>
+
+        <RouterLink
+          to="/dashboard/tickets"
+          :class="linkClass"
+          :active-class="activeClass"
+          @click="menuOpen = false"
+        >
+          <i class="fa-solid fa-ticket text-xs w-4"></i> Tickets
         </RouterLink>
 
         <div class="flex items-center justify-between mt-3 pt-3 border-t border-white/10">

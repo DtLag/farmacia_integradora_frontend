@@ -22,6 +22,7 @@ import CartView from '@/views/Customer/Landing/CartView.vue'
 import MyOrdersView from '@/views/Customer/Landing/MyOrdersView.vue'
 import PersonalInfoView from '@/views/Customer/Profile/PersonalInfoView.vue'
 import EditProfileView from '@/views/Customer/Profile/EditProfileView.vue'
+import TicketView from '@/views/TicketView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -137,7 +138,6 @@ const router = createRouter({
               path: 'reports-users',
               name: 'usersReport',
               component: UserReport,
-              meta: { requiresAuth: true, roles: ['Administrador'] },
             },
           ],
         },
@@ -151,6 +151,12 @@ const router = createRouter({
           path: 'users',
           name: 'users',
           component: UsersView,
+          meta: { requiresAuth: true, roles: ['Administrador'] },
+        },
+        {
+          path: 'tickets',
+          name: 'tickets',
+          component: TicketView,
           meta: { requiresAuth: true, roles: ['Administrador'] },
         },
       ],
