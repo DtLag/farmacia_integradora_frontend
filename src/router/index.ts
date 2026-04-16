@@ -171,7 +171,7 @@ const router = createRouter({
   ],
 })
 router.afterEach((to) => {
-  document.title = to.meta.title || 'Farmacia Dr. Perez'
+  document.title = (to.meta.title as string) || 'Farmacia Dr. Perez'
 })
 
 
