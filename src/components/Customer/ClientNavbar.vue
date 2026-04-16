@@ -43,7 +43,7 @@ onMounted(() => {
           
           toasts.value.push({
             id,
-            message: `Tu pedido #${e.orderData.id} cambió a: ${e.orderData.state}`
+            message: `Tu pedido #${e.order.id} cambió a: ${e.order.state}`
           })
 
           setTimeout(() => {
