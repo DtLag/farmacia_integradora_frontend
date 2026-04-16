@@ -160,7 +160,7 @@ async function submitProduct() {
     for (const [key, value] of Object.entries(productForm.value)) {
       if (value !== null && value !== '') formData.append(key, value instanceof File ? value : String(value))
     }
-    const response = await fetch(`${API_BASE_URL}${isEditingProduct.value ? `products/${editingProductId.value}` : 'products'}`, { method:isEditingProduct.value ? 'PATCH' : 'POST', headers:{ Accept:'application/json', Authorization:`Bearer ${authStore.token}` }, credentials:'include', body:formData })
+    const response = await fetch(`${API_BASE_URL}${isEditingProduct.value ? `products/${editingProductId.value}` : 'products'}`, { method:isEditingProduct.value ? 'PATCH' : 'POST', headers:{ Accept:'application/json', Authorization:`Bearer ${authStore.token}` }, body:formData })
     const body = await response.json().catch(() => null)
     if (!response.ok) { productError.value = body?.message || `No se pudo ${isEditingProduct.value ? 'actualizar' : 'guardar'} el producto.`; return }
     feedbackSuccess.value = body?.message || `Producto ${isEditingProduct.value ? 'actualizado' : 'agregado'} correctamente.`
@@ -178,7 +178,7 @@ async function submitBatch() {
   if (!products.length) { batchError.value = 'Agrega al menos un producto valido.'; return }
   isSavingBatch.value = true
   try {
-    const response = await fetch(`${API_BASE_URL}/register-batch-reception`, { method:'POST', headers:{ Accept:'application/json', 'Content-Type':'application/json', Authorization:`Bearer ${authStore.token}` }, credentials:'include', body:JSON.stringify({ identifier_batch:batchForm.value.identifier_batch.trim(), supplier_id:batchForm.value.supplier_id, entry_date:batchForm.value.entry_date, notes:batchForm.value.notes.trim() || null, products }) })
+    const response = await fetch(`${API_BASE_URL}/register-batch-reception`, { method:'POST', headers:{ Accept:'application/json', 'Content-Type':'application/json', Authorization:`Bearer ${authStore.token}` }, body:JSON.stringify({ identifier_batch:batchForm.value.identifier_batch.trim(), supplier_id:batchForm.value.supplier_id, entry_date:batchForm.value.entry_date, notes:batchForm.value.notes.trim() || null, products }) })
     const body = await response.json().catch(() => null)
     if (!response.ok) { batchError.value = response.status === 401 ? 'Tu sesion local no esta autorizada para registrar lotes. Inicia sesion otra vez.' : body?.message || 'No se pudo registrar el lote.'; return }
     feedbackSuccess.value = body?.message || 'Lote registrado correctamente.'
@@ -195,7 +195,7 @@ async function submitSupplier() {
   if (!authStore.token) { supplierError.value = 'Necesitas iniciar sesion de nuevo para guardar proveedores.'; return }
   isSavingSupplier.value = true
   try {
-    const response = await fetch(`${API_BASE_URL}suppliers`, { method:'POST', headers:{ Accept:'application/json', 'Content-Type':'application/json', Authorization:`Bearer ${authStore.token}` }, credentials:'include', body:JSON.stringify({ name:supplierForm.value.name.trim(), contact:supplierForm.value.contact.trim() || null, email:supplierForm.value.email.trim() || null, phone_number:supplierForm.value.phone_number.trim() || null }) })
+    const response = await fetch(`${API_BASE_URL}suppliers`, { method:'POST', headers:{ Accept:'application/json', 'Content-Type':'application/json', Authorization:`Bearer ${authStore.token}` }, body:JSON.stringify({ name:supplierForm.value.name.trim(), contact:supplierForm.value.contact.trim() || null, email:supplierForm.value.email.trim() || null, phone_number:supplierForm.value.phone_number.trim() || null }) })
     const body = await response.json().catch(() => null)
     if (!response.ok) { supplierError.value = response.status === 401 ? 'El backend local no reconocio tu sesion. Inicia sesion otra vez.' : body?.message || 'No se pudo crear el proveedor.'; return }
     if (body?.supplier?.id && body?.supplier?.name) {
