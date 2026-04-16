@@ -20,13 +20,8 @@ jobs:
 
       - name: Install dependencies and Build
         run: |
-          echo "VITE_API_BASE_URL=https://api.harold-dev.me/api" > .env
-          echo "VITE_REVERB_APP_KEY=rmynmwpfvooqjtvg1c8d" >> .env
-          echo "VITE_REVERB_HOST=api.harold-dev.me" >> .env
-          echo "VITE_REVERB_PORT=443" >> .env
-          echo "VITE_REVERB_SCHEME=https" >> .env
           npm install
-          npm run build
+          VITE_API_BASE_URL="https://api.harold-dev.me/api" VITE_REVERB_APP_KEY="rmynmwpfvooqjtvg1c8d" VITE_REVERB_HOST="api.harold-dev.me" VITE_REVERB_PORT=443 VITE_REVERB_SCHEME="https" npm run build
 
       - name: Deploy via SFTP
         uses: wlixcc/SFTP-Deploy-Action@v1.2.4
