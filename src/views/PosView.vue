@@ -9,22 +9,26 @@ import SelectedProductsList from '@/components/SelectedProductsList.vue'
 const query = ref<string>('')
 const products = ref<Product[]>([])
 const selectedOption = ref<number>(1)
+const amountReceived = ref(0)
+const change = ref(0)
+const selectedProducts = ref<SaleItem[]>([])
+const paymentMethods = ref<PaymentMethod[]>([])
+const satisfiedSale = ref(false)
+
+const saleSummary = ref({
+  total: 0,
+  amountReceived: 0,
+  change: 0,
+})
+
 const total = computed(() => {
   return selectedProducts.value.reduce(
     (acc, product) => acc + product.sale_price * product.amount,
     0,
   )
 })
-const saleSummary = ref({
-  total: 0,
-  amountReceived: 0,
-  change: 0,
-})
-const amountReceived = ref(0.0)
-const change = ref(0.0)
-const selectedProducts = ref<SaleItem[]>([])
-const paymentMethods = ref<PaymentMethod[]>([])
-const satisfiedSale = ref<boolean>(false)
+
+let debounceTimeout: ReturnType<typeof setTimeout> | null = null
 
 onMounted(() => {
   getProducts()
@@ -39,8 +43,6 @@ async function getPaymentMethod() {
 async function getProducts() {
   try {
     const { data } = await useApi('/products/search', {}).get().json()
-
-    products.value = data.value?.data ?? []
 
     const raw = data.value?.data ?? []
     products.value = raw.map((p: any) => ({
@@ -58,14 +60,11 @@ async function getProducts() {
 }
 
 async function searchProduct(search: string) {
-  const params = new URLSearchParams({
-    query: search,
-  })
+  const params = new URLSearchParams({ query: search })
 
   try {
-    const { data, error } = await useApi(`/products/search?${params}`, {}).get().json()
+    const { data } = await useApi(`/products/search?${params}`, {}).get().json()
 
-    products.value = data.value?.data ?? []
     const raw = data.value?.data ?? []
 
     products.value = raw.map((p: any) => ({
@@ -109,10 +108,14 @@ function selectProducts(newProduct: Product) {
   })
 }
 
+function removeSelectedProduct(id: number) {
+  selectedProducts.value = selectedProducts.value.filter((product) => product.id !== id)
+}
+
 async function registerSale() {
   if (selectedOption.value === 1 && total.value > amountReceived.value) {
     const difference = total.value - amountReceived.value
-    alert(`Monto insuficiente - $${difference} faltantes`)
+    alert(`Monto insuficiente - $${difference.toFixed(2)} faltantes`)
     return
   }
 
@@ -171,11 +174,15 @@ function resetPos() {
 }
 
 watch(query, (newValue) => {
-  if (!newValue) {
-    getProducts()
-  } else {
-    searchProduct(newValue)
-  }
+  if (debounceTimeout) clearTimeout(debounceTimeout)
+
+  debounceTimeout = setTimeout(() => {
+    if (!newValue.trim()) {
+      getProducts()
+    } else {
+      searchProduct(newValue)
+    }
+  }, 300)
 })
 </script>
 
@@ -185,19 +192,21 @@ watch(query, (newValue) => {
       <section class="pos-left">
         <div class="searchbar-root w-full rounded-3 border-b-fuchsia-50">
           <input
+            v-model="query"
             type="text"
             placeholder="Buscar producto..."
-            v-model="query"
-            class="search-input rounded-3 block w-full rounded-2xl border border-gray-300 px-6 py-2 text-lg outline-none focus:ring-2 focus:ring-blue-500"
+            class="block w-full rounded-2xl border border-gray-300 px-4 py-3 text-base outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
-        <div class="products grid grid-cols-4 gap-3 p-4 justify-items-center">
+        <div
+          class="grid gap-3 p-4 justify-items-center [grid-template-columns:repeat(auto-fit,minmax(180px,1fr))]"
+        >
           <ProductCard
-            @click="selectProducts(product)"
             v-for="product in products"
             :key="product.codigo"
             :product="product"
+            @click="handleSelect(product)"
           />
         </div>
       </section>
@@ -208,16 +217,18 @@ watch(query, (newValue) => {
           <div class="mt-6">
             <h2 class="mb-3 text-lg font-semibold text-gray-800">Productos seleccionados</h2>
 
-            <div class="max-h-54 overflow-y-auto pr-1">
+            <div class="max-h-80 overflow-y-auto pr-1">
               <SelectedProductsList :products="selectedProducts" @remove="removeSelectedProduct" />
             </div>
           </div>
-          <div class="mt-6">
-            <label>Método de pago</label>
+
+          <div class="mt-6 space-y-4">
             <div>
+              <label class="mb-1 block text-sm font-medium text-gray-700"> Método de pago </label>
               <select
                 class="appearance-none w-full bg-white border border-gray-300 rounded-lg py-1 px-4 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 v-model="selectedOption"
+                class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option v-for="method in paymentMethods" :key="method.id" :value="method.id">
                   {{ method.method_name }}
@@ -225,28 +236,31 @@ watch(query, (newValue) => {
               </select>
             </div>
 
-            <div class="mt-6">
-              <label>Monto recibido</label>
+            <div v-if="selectedOption === 1">
+              <label class="mb-1 block text-sm font-medium text-gray-700"> Monto recibido </label>
               <input
                 class="appearance-none w-full bg-white border border-gray-300 rounded-lg py-1 px-4 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 type="number"
                 v-model="amountReceived"
+                type="number"
+                min="0"
+                step="0.01"
+                class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <hr class="mt-6" />
             </div>
 
-            <div class="m-6 flex flex-col space-y-4 text-gray-800 text-lg">
-              <div class="flex justify-between text-xl">
-                <span>Total:</span>
-                <span class="font-extrabold">${{ total }}</span>
-              </div>
+            <hr />
+
+            <div class="flex items-center justify-between text-lg text-gray-800">
+              <span>Total:</span>
+              <span class="text-2xl font-extrabold">${{ total.toFixed(2) }}</span>
             </div>
 
             <button
-              class="w-full bg-emerald-700 text-white px-4 py-2 rounded-md hover:bg-emerald-800 transition"
-              type="submit"
+              class="w-full rounded-lg bg-emerald-700 px-4 py-3 font-medium text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
+              type="button"
               @click="registerSale"
-              data-dialog-target="modal"
+              :disabled="selectedProducts.length === 0"
             >
               Cobrar
             </button>
@@ -264,7 +278,6 @@ watch(query, (newValue) => {
     @click.self="resetPos"
   />
 </template>
-
 <style scoped>
 .pos-page {
   padding: 30px;

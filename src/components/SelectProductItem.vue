@@ -16,7 +16,7 @@ function removeProduct() {
 
 <template>
   <div
-    class="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm"
+    class="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between"
   >
     <div class="min-w-0 flex-1">
       <p class="truncate font-semibold text-gray-800">
@@ -25,7 +25,7 @@ function removeProduct() {
 
       <div class="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500">
         <span>Cantidad: {{ product.amount }}</span>
-        <span>Precio: ${{ product.sale_price }}</span>
+        <span>Precio: ${{ Number(product.sale_price).toFixed(2) }}</span>
         <span class="font-medium text-gray-700">
           Subtotal: ${{ (product.sale_price * product.amount).toFixed(2) }}
         </span>
@@ -35,7 +35,7 @@ function removeProduct() {
     <button
       type="button"
       @click="removeProduct"
-      class="ml-4 rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-100"
+      class="w-full rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-100 sm:w-auto"
     >
       Eliminar
     </button>
