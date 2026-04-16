@@ -178,7 +178,7 @@ async function submitBatch() {
   if (!products.length) { batchError.value = 'Agrega al menos un producto valido.'; return }
   isSavingBatch.value = true
   try {
-    const response = await fetch(`${API_BASE_URL}register-batch-reception`, { method:'POST', headers:{ Accept:'application/json', 'Content-Type':'application/json', Authorization:`Bearer ${authStore.token}` }, credentials:'include', body:JSON.stringify({ identifier_batch:batchForm.value.identifier_batch.trim(), supplier_id:batchForm.value.supplier_id, entry_date:batchForm.value.entry_date, notes:batchForm.value.notes.trim() || null, products }) })
+    const response = await fetch(`${API_BASE_URL}/register-batch-reception`, { method:'POST', headers:{ Accept:'application/json', 'Content-Type':'application/json', Authorization:`Bearer ${authStore.token}` }, credentials:'include', body:JSON.stringify({ identifier_batch:batchForm.value.identifier_batch.trim(), supplier_id:batchForm.value.supplier_id, entry_date:batchForm.value.entry_date, notes:batchForm.value.notes.trim() || null, products }) })
     const body = await response.json().catch(() => null)
     if (!response.ok) { batchError.value = response.status === 401 ? 'Tu sesion local no esta autorizada para registrar lotes. Inicia sesion otra vez.' : body?.message || 'No se pudo registrar el lote.'; return }
     feedbackSuccess.value = body?.message || 'Lote registrado correctamente.'
