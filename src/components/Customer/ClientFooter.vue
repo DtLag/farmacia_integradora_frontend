@@ -14,8 +14,8 @@
         <h4 class="text-lg font-semibold mb-4 border-b border-gray-700 pb-2 inline-block">Enlaces</h4>
         <ul class="space-y-2 text-sm text-gray-400">
           <li><RouterLink to="/" class="hover:text-blue-400 transition">Inicio</RouterLink></li>
-          <li><RouterLink to="/profile" class="hover:text-blue-400 transition">Mi Perfil</RouterLink></li>
-          <li><RouterLink to="/cart" class="hover:text-blue-400 transition">Carrito de Compras</RouterLink></li>
+          <li><RouterLink to="/customer/profile/info" class="hover:text-blue-400 transition">Mi Perfil</RouterLink></li>
+          <li><RouterLink to="/customer/cart" class="hover:text-blue-400 transition">Carrito de Compras</RouterLink></li>
         </ul>
       </div>
 

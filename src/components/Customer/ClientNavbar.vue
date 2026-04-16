@@ -54,7 +54,7 @@ const emit = defineEmits(['onSearch'])
               <RouterLink to="/customer/my-orders" class="text-sm font-medium text-white hover:text-blue-200 transition">
                 Mis Pedidos
               </RouterLink>
-              <RouterLink to="/profile" class="text-sm font-medium text-white hover:text-blue-200 transition">
+              <RouterLink to="/customer/profile/info" class="text-sm font-medium text-white hover:text-blue-200 transition">
                 {{ authStore.user?.name }}
               </RouterLink>
               <button @click="logOut" class="text-xs text-red-300 hover:text-red-100 bg-red-900/30 hover:bg-red-900/50 px-3 py-1.5 rounded transition font-bold">
@@ -101,7 +101,7 @@ const emit = defineEmits(['onSearch'])
             <i class="fas fa-box-open w-6 text-blue-300"></i> Mis Pedidos
           </RouterLink>
           
-          <RouterLink to="/profile" @click="closeMenu" class="block text-white font-medium hover:bg-blue-800/50 px-3 py-2 rounded-lg transition">
+          <RouterLink to="/customer/profile/info" @click="closeMenu" class="block text-white font-medium hover:bg-blue-800/50 px-3 py-2 rounded-lg transition">
             <i class="fas fa-user w-6 text-blue-300"></i> Perfil ({{ authStore.user?.name }})
           </RouterLink>
           
