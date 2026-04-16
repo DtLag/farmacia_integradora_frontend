@@ -35,6 +35,7 @@ async function getPaymentMethod() {
   const response = await useApi('payment/methods', {}).get().json()
   paymentMethods.value = response.data.value.data
 }
+
 async function getProducts() {
   try {
     const { data } = await useApi('/products/search', {}).get().json()
@@ -42,8 +43,6 @@ async function getProducts() {
     products.value = data.value?.data ?? []
 
     const raw = data.value?.data ?? []
-    console.log('primer raw product:', raw[0])
-    console.log('keys del primer producto:', Object.keys(raw[0]))
     products.value = raw.map((p: any) => ({
       id: Number(p.id ?? p.product_id ?? p.id_product),
       name: p.name,
@@ -53,11 +52,11 @@ async function getProducts() {
       stock: p.stock,
       image_url: p.image_url,
     }))
-    console.log('products cargados:', products.value)
   } catch (e) {
     console.log(e)
   }
 }
+
 async function searchProduct(search: string) {
   const params = new URLSearchParams({
     query: search,
@@ -84,13 +83,22 @@ async function searchProduct(search: string) {
 }
 
 function selectProducts(newProduct: Product) {
-  console.log('producto clickeado:', newProduct)
-
   const existingProduct = selectedProducts.value.find((product) => product.id === newProduct.id)
 
   if (existingProduct) {
+    // Verificamos si al agregar uno más, superamos el stock real del producto
+    if (existingProduct.amount + 1 > newProduct.stock) {
+      alert(`No puedes agregar más. Solo hay ${newProduct.stock} unidades de ${newProduct.name} en stock.`);
+      return;
+    }
     existingProduct.amount += 1
     return
+  }
+
+  // Si es la primera vez que lo agregamos, verificamos que al menos haya 1 en stock
+  if (newProduct.stock < 1) {
+    alert(`El producto ${newProduct.name} está agotado (Stock: 0).`);
+    return;
   }
 
   selectedProducts.value.push({
@@ -121,8 +129,6 @@ async function registerSale() {
   }
 
   try {
-    console.log('payload:', payload)
-
     const { data, error } = await useApi('/sales', {}).post(payload).json()
 
     if (selectedOption.value === 2) {
@@ -138,20 +144,32 @@ async function registerSale() {
     }
 
     satisfiedSale.value = true
-    console.log(data)
 
-
-    selectedProducts.value = []
-    amountReceived.value = 0
-    selectedOption.value = 1
   } catch (e) {
     console.error(e)
     alert('Error de conexión con el servidor')
   }
 }
+
 function removeSelectedProduct(id: number) {
   selectedProducts.value = selectedProducts.value.filter((product) => product.id !== id)
 }
+
+function resetPos() {
+  // Ocultamos el modal
+  satisfiedSale.value = false;
+  
+  // Limpiamos los valores de la venta
+  selectedProducts.value = [];
+  amountReceived.value = 0;
+  selectedOption.value = 1;
+  change.value = 0;
+  query.value = '';
+
+  // Actualizamos los productos para refrescar el stock en la pantalla
+  getProducts();
+}
+
 watch(query, (newValue) => {
   if (!newValue) {
     getProducts()
@@ -164,7 +182,6 @@ watch(query, (newValue) => {
 <template>
   <div class="pos-page">
     <div class="pos-layout">
-      <!-- LADO IZQUIERDO -->
       <section class="pos-left">
         <div class="searchbar-root w-full rounded-3 border-b-fuchsia-50">
           <input
@@ -185,7 +202,6 @@ watch(query, (newValue) => {
         </div>
       </section>
 
-      <!-- LADO DERECHO -->
       <aside class="pos-right">
         <div class="w-full">
           <h1 class="text-3xl font-bold">Venta</h1>
@@ -200,7 +216,7 @@ watch(query, (newValue) => {
             <label>Método de pago</label>
             <div>
               <select
-                class="appearance-noneappearance-none w-full bg-white border border-gray-300 rounded-lg py-1 px-4 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                class="appearance-none w-full bg-white border border-gray-300 rounded-lg py-1 px-4 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 v-model="selectedOption"
               >
                 <option v-for="method in paymentMethods" :key="method.id" :value="method.id">
@@ -212,7 +228,7 @@ watch(query, (newValue) => {
             <div class="mt-6">
               <label>Monto recibido</label>
               <input
-                class="appearance-noneappearance-none w-full bg-white border border-gray-300 rounded-lg py-1 px-4 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                class="appearance-none w-full bg-white border border-gray-300 rounded-lg py-1 px-4 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 type="number"
                 v-model="amountReceived"
               />
@@ -240,13 +256,12 @@ watch(query, (newValue) => {
     </div>
   </div>
 
-  <!-- MODAL AL COBRAR -->
   <SuccessfulSale
     v-if="satisfiedSale"
     :total="saleSummary.total"
     :amount-received="saleSummary.amountReceived"
     :change="saleSummary.change"
-    @click.self="satisfiedSale = false"
+    @click.self="resetPos"
   />
 </template>
 

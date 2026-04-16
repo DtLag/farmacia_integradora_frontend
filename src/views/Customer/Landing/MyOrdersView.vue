@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
+import { createEchoInstance } from '@/utils/echo'
 import { useApi } from '@/composables/useApiFetch'
 import type { Order } from '@/types/types'
 import ClientNavbar from '@/components/Customer/ClientNavbar.vue'
 import ClientFooter from '@/components/Customer/ClientFooter.vue'
 
+let echo: any = null;
 const orders = ref<Order[]>([])
 const loading = ref(true)
 const activeTab = ref('pending')
@@ -38,6 +40,31 @@ async function fetchOrders(state: string) {
 
 onMounted(() => {
   fetchOrders('pending')
+
+  echo = createEchoInstance();
+
+  echo.channel('public-orders')
+    .listen('.OrderStatusChanged', (e: any) => {
+        console.log('🔄 Estado de tu pedido actualizado:', e.orderData);
+        
+        const orderToUpdate = orders.value.find(o => o.id === e.orderData.id);
+        
+        if (orderToUpdate) {  
+          orderToUpdate.state = e.orderData.state;
+
+          if (activeTab.value !== 'completed' && activeTab.value !== 'canceled') {
+            setTimeout(() => {
+                fetchOrders(activeTab.value);
+            }, 2000);
+          }
+        }
+    });
+})
+
+onUnmounted(() => {
+  if (echo) {
+    echo.leaveChannel('public-orders');
+  }
 })
 
 function getStatusLabel(state: string) {
