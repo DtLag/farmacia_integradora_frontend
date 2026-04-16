@@ -228,7 +228,6 @@ watch(query, (newValue) => {
               <select
                 class="appearance-none w-full bg-white border border-gray-300 rounded-lg py-1 px-4 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 v-model="selectedOption"
-                class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option v-for="method in paymentMethods" :key="method.id" :value="method.id">
                   {{ method.method_name }}
@@ -239,10 +238,8 @@ watch(query, (newValue) => {
             <div v-if="selectedOption === 1">
               <label class="mb-1 block text-sm font-medium text-gray-700"> Monto recibido </label>
               <input
-                class="appearance-none w-full bg-white border border-gray-300 rounded-lg py-1 px-4 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 type="number"
                 v-model="amountReceived"
-                type="number"
                 min="0"
                 step="0.01"
                 class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
