@@ -5,26 +5,45 @@ import OrderActions from '@/components/OrderActions.vue';
 import { ref, onMounted, onUnmounted } from 'vue';
 import type { Order } from '@/types/types';
 import { useOrdersStore } from '@/stores/order';
+import { createEchoInstance } from '@/utils/echo'; 
+import { useAuthStore } from '@/stores/auth'; 
 
-const orderStore = useOrdersStore()
+const orderStore = useOrdersStore();
+const authStore = useAuthStore();
+let echo: any = null; 
 
 onMounted(() => {
   orderStore.getOrders();
-  orderStore.autoRefresh();
+  
+  if (authStore.token) {
+    echo = createEchoInstance(authStore.token);
+
+    echo.private('staff.orders')
+      .listen('.NewPickUpOrder', (e: any) => {
+          console.log('🔔 ¡Nuevo pedido recibido!', e.orderData);
+          if (orderStore.currentState === 'pending') {
+              orderStore.getOrders('pending');
+          }
+      })
+      .listen('.OrderStatusChanged', (e: any) => {
+          console.log('🔄 Estado de un pedido actualizado', e.orderData);
+          orderStore.getOrders(orderStore.currentState);
+      });
+  } else {
+    console.warn("No hay token disponible para conectar a WebSockets");
+  }
 });
 
 onUnmounted(() => {
-  orderStore.cancelAutoRefresh();
+  if (echo) {
+    echo.leaveChannel('private-staff.orders');
+  }
 });
-
 
 function selectOption(order: Order, state: 'procesar' | 'cancelar' | 'completar'){
   orderStore.selectOrder(order)
   orderStore.openModal(state)
 }
-
-
-
 </script>
 
 <template>

@@ -8,7 +8,6 @@ export const useOrdersStore = defineStore('orderStore', () => {
     const selectedOrder = ref<Order | null>(null);
     const activeModal = ref< 'procesar' | 'cancelar' | 'completar' | null>(null);
     const currentState = ref< string>('pending');
-    const timerId = ref<number | null>(null)
 
     async function getOrders(state: string = 'pending'){
         const {data, error} = await useApi(`/pickup/order/${state}`).get().json();
@@ -32,24 +31,6 @@ export const useOrdersStore = defineStore('orderStore', () => {
         activeModal.value = null
     }
 
-    function autoRefresh(){
-        if(timerId.value){
-            return;
-        }
-
-        timerId.value = setInterval(() => {
-            getOrders(currentState.value);
-        }, 300000);
-    }
-
-    function cancelAutoRefresh(){
-        if(timerId.value){
-            clearInterval(timerId.value);
-            timerId.value = null;
-        }
-        
-    }
-
     async function startProcessOrder (){
         await useApi(`/pickup/orders/${selectedOrder.value?.id}/start`).patch().json();
 
@@ -71,5 +52,5 @@ export const useOrdersStore = defineStore('orderStore', () => {
         closeModal()
     }
 
-    return {orders, selectedOrder, activeModal, currentState, getOrders, selectOrder, openModal, autoRefresh, cancelAutoRefresh, closeModal, startProcessOrder, completeOrder, cancelOrder}
+    return {orders, selectedOrder, activeModal, currentState, getOrders, selectOrder, openModal, closeModal, startProcessOrder, completeOrder, cancelOrder}
 })

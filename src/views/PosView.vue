@@ -45,7 +45,6 @@ async function getProducts() {
     const { data } = await useApi('/products/search', {}).get().json()
 
     const raw = data.value?.data ?? []
-
     products.value = raw.map((p: any) => ({
       id: Number(p.id ?? p.product_id ?? p.id_product),
       name: p.name,
@@ -86,8 +85,19 @@ function selectProducts(newProduct: Product) {
   const existingProduct = selectedProducts.value.find((product) => product.id === newProduct.id)
 
   if (existingProduct) {
+    // Verificamos si al agregar uno más, superamos el stock real del producto
+    if (existingProduct.amount + 1 > newProduct.stock) {
+      alert(`No puedes agregar más. Solo hay ${newProduct.stock} unidades de ${newProduct.name} en stock.`);
+      return;
+    }
     existingProduct.amount += 1
     return
+  }
+
+  // Si es la primera vez que lo agregamos, verificamos que al menos haya 1 en stock
+  if (newProduct.stock < 1) {
+    alert(`El producto ${newProduct.name} está agotado (Stock: 0).`);
+    return;
   }
 
   selectedProducts.value.push({
@@ -122,9 +132,13 @@ async function registerSale() {
   }
 
   try {
-    await useApi('/sales', {}).post(payload).json()
+    const { data, error } = await useApi('/sales', {}).post(payload).json()
 
-    change.value = selectedOption.value === 2 ? 0 : amountReceived.value - total.value
+    if (selectedOption.value === 2) {
+      change.value = 0
+    } else {
+      change.value = amountReceived.value - total.value
+    }
 
     saleSummary.value = {
       total: total.value,
@@ -133,17 +147,30 @@ async function registerSale() {
     }
 
     satisfiedSale.value = true
-    selectedProducts.value = []
-    amountReceived.value = 0
-    selectedOption.value = 1
+
   } catch (e) {
     console.error(e)
     alert('Error de conexión con el servidor')
   }
 }
-function handleSelect(product: Product) {
-  if (product.stock === 0) return
-  selectProducts(product)
+
+function removeSelectedProduct(id: number) {
+  selectedProducts.value = selectedProducts.value.filter((product) => product.id !== id)
+}
+
+function resetPos() {
+  // Ocultamos el modal
+  satisfiedSale.value = false;
+  
+  // Limpiamos los valores de la venta
+  selectedProducts.value = [];
+  amountReceived.value = 0;
+  selectedOption.value = 1;
+  change.value = 0;
+  query.value = '';
+
+  // Actualizamos los productos para refrescar el stock en la pantalla
+  getProducts();
 }
 
 watch(query, (newValue) => {
@@ -160,11 +187,10 @@ watch(query, (newValue) => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50 p-4 md:p-6">
-    <div class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
-      <!-- CATÁLOGO -->
-      <section class="min-w-0 rounded-2xl bg-white shadow-sm">
-        <div class="border-b border-gray-100 p-4 md:p-5">
+  <div class="pos-page">
+    <div class="pos-layout">
+      <section class="pos-left">
+        <div class="searchbar-root w-full rounded-3 border-b-fuchsia-50">
           <input
             v-model="query"
             type="text"
@@ -185,11 +211,9 @@ watch(query, (newValue) => {
         </div>
       </section>
 
-      <!-- RESUMEN DE VENTA -->
-      <aside class="min-w-0">
-        <div class="rounded-2xl bg-white p-4 shadow-sm xl:sticky xl:top-6">
-          <h1 class="text-2xl font-bold text-gray-800">Venta</h1>
-
+      <aside class="pos-right">
+        <div class="w-full">
+          <h1 class="text-3xl font-bold">Venta</h1>
           <div class="mt-6">
             <h2 class="mb-3 text-lg font-semibold text-gray-800">Productos seleccionados</h2>
 
@@ -202,6 +226,7 @@ watch(query, (newValue) => {
             <div>
               <label class="mb-1 block text-sm font-medium text-gray-700"> Método de pago </label>
               <select
+                class="appearance-none w-full bg-white border border-gray-300 rounded-lg py-1 px-4 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 v-model="selectedOption"
                 class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
@@ -214,6 +239,8 @@ watch(query, (newValue) => {
             <div v-if="selectedOption === 1">
               <label class="mb-1 block text-sm font-medium text-gray-700"> Monto recibido </label>
               <input
+                class="appearance-none w-full bg-white border border-gray-300 rounded-lg py-1 px-4 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                type="number"
                 v-model="amountReceived"
                 type="number"
                 min="0"
@@ -248,6 +275,7 @@ watch(query, (newValue) => {
     :total="saleSummary.total"
     :amount-received="saleSummary.amountReceived"
     :change="saleSummary.change"
+    @click.self="resetPos"
   />
 </template>
 <style scoped>
