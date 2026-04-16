@@ -9,22 +9,26 @@ import SelectedProductsList from '@/components/SelectedProductsList.vue'
 const query = ref<string>('')
 const products = ref<Product[]>([])
 const selectedOption = ref<number>(1)
+const amountReceived = ref(0)
+const change = ref(0)
+const selectedProducts = ref<SaleItem[]>([])
+const paymentMethods = ref<PaymentMethod[]>([])
+const satisfiedSale = ref(false)
+
+const saleSummary = ref({
+  total: 0,
+  amountReceived: 0,
+  change: 0,
+})
+
 const total = computed(() => {
   return selectedProducts.value.reduce(
     (acc, product) => acc + product.sale_price * product.amount,
     0,
   )
 })
-const saleSummary = ref({
-  total: 0,
-  amountReceived: 0,
-  change: 0,
-})
-const amountReceived = ref(0.0)
-const change = ref(0.0)
-const selectedProducts = ref<SaleItem[]>([])
-const paymentMethods = ref<PaymentMethod[]>([])
-const satisfiedSale = ref<boolean>(false)
+
+let debounceTimeout: ReturnType<typeof setTimeout> | null = null
 
 onMounted(() => {
   getProducts()
@@ -35,15 +39,13 @@ async function getPaymentMethod() {
   const response = await useApi('payment/methods', {}).get().json()
   paymentMethods.value = response.data.value.data
 }
+
 async function getProducts() {
   try {
     const { data } = await useApi('/products/search', {}).get().json()
 
-    products.value = data.value?.data ?? []
-
     const raw = data.value?.data ?? []
-    console.log('primer raw product:', raw[0])
-    console.log('keys del primer producto:', Object.keys(raw[0]))
+
     products.value = raw.map((p: any) => ({
       id: Number(p.id ?? p.product_id ?? p.id_product),
       name: p.name,
@@ -53,20 +55,17 @@ async function getProducts() {
       stock: p.stock,
       image_url: p.image_url,
     }))
-    console.log('products cargados:', products.value)
   } catch (e) {
     console.log(e)
   }
 }
+
 async function searchProduct(search: string) {
-  const params = new URLSearchParams({
-    query: search,
-  })
+  const params = new URLSearchParams({ query: search })
 
   try {
-    const { data, error } = await useApi(`/products/search?${params}`, {}).get().json()
+    const { data } = await useApi(`/products/search?${params}`, {}).get().json()
 
-    products.value = data.value?.data ?? []
     const raw = data.value?.data ?? []
 
     products.value = raw.map((p: any) => ({
@@ -84,8 +83,6 @@ async function searchProduct(search: string) {
 }
 
 function selectProducts(newProduct: Product) {
-  console.log('producto clickeado:', newProduct)
-
   const existingProduct = selectedProducts.value.find((product) => product.id === newProduct.id)
 
   if (existingProduct) {
@@ -101,10 +98,14 @@ function selectProducts(newProduct: Product) {
   })
 }
 
+function removeSelectedProduct(id: number) {
+  selectedProducts.value = selectedProducts.value.filter((product) => product.id !== id)
+}
+
 async function registerSale() {
   if (selectedOption.value === 1 && total.value > amountReceived.value) {
     const difference = total.value - amountReceived.value
-    alert(`Monto insuficiente - $${difference} faltantes`)
+    alert(`Monto insuficiente - $${difference.toFixed(2)} faltantes`)
     return
   }
 
@@ -121,15 +122,9 @@ async function registerSale() {
   }
 
   try {
-    console.log('payload:', payload)
+    await useApi('/sales', {}).post(payload).json()
 
-    const { data, error } = await useApi('/sales', {}).post(payload).json()
-
-    if (selectedOption.value === 2) {
-      change.value = 0
-    } else {
-      change.value = amountReceived.value - total.value
-    }
+    change.value = selectedOption.value === 2 ? 0 : amountReceived.value - total.value
 
     saleSummary.value = {
       total: total.value,
@@ -138,9 +133,6 @@ async function registerSale() {
     }
 
     satisfiedSale.value = true
-    console.log(data)
-
-
     selectedProducts.value = []
     amountReceived.value = 0
     selectedOption.value = 1
@@ -149,59 +141,69 @@ async function registerSale() {
     alert('Error de conexión con el servidor')
   }
 }
-function removeSelectedProduct(id: number) {
-  selectedProducts.value = selectedProducts.value.filter((product) => product.id !== id)
+function handleSelect(product: Product) {
+  if (product.stock === 0) return
+  selectProducts(product)
 }
+
 watch(query, (newValue) => {
-  if (!newValue) {
-    getProducts()
-  } else {
-    searchProduct(newValue)
-  }
+  if (debounceTimeout) clearTimeout(debounceTimeout)
+
+  debounceTimeout = setTimeout(() => {
+    if (!newValue.trim()) {
+      getProducts()
+    } else {
+      searchProduct(newValue)
+    }
+  }, 300)
 })
 </script>
 
 <template>
-  <div class="pos-page">
-    <div class="pos-layout">
-      <!-- LADO IZQUIERDO -->
-      <section class="pos-left">
-        <div class="searchbar-root w-full rounded-3 border-b-fuchsia-50">
+  <div class="min-h-screen bg-gray-50 p-4 md:p-6">
+    <div class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
+      <!-- CATÁLOGO -->
+      <section class="min-w-0 rounded-2xl bg-white shadow-sm">
+        <div class="border-b border-gray-100 p-4 md:p-5">
           <input
+            v-model="query"
             type="text"
             placeholder="Buscar producto..."
-            v-model="query"
-            class="search-input rounded-3 block w-full rounded-2xl border border-gray-300 px-6 py-2 text-lg outline-none focus:ring-2 focus:ring-blue-500"
+            class="block w-full rounded-2xl border border-gray-300 px-4 py-3 text-base outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
-        <div class="products grid grid-cols-4 gap-3 p-4 justify-items-center">
+        <div
+          class="grid gap-3 p-4 justify-items-center [grid-template-columns:repeat(auto-fit,minmax(180px,1fr))]"
+        >
           <ProductCard
-            @click="selectProducts(product)"
             v-for="product in products"
             :key="product.codigo"
             :product="product"
+            @click="handleSelect(product)"
           />
         </div>
       </section>
 
-      <!-- LADO DERECHO -->
-      <aside class="pos-right">
-        <div class="w-full">
-          <h1 class="text-3xl font-bold">Venta</h1>
+      <!-- RESUMEN DE VENTA -->
+      <aside class="min-w-0">
+        <div class="rounded-2xl bg-white p-4 shadow-sm xl:sticky xl:top-6">
+          <h1 class="text-2xl font-bold text-gray-800">Venta</h1>
+
           <div class="mt-6">
             <h2 class="mb-3 text-lg font-semibold text-gray-800">Productos seleccionados</h2>
 
-            <div class="max-h-54 overflow-y-auto pr-1">
+            <div class="max-h-80 overflow-y-auto pr-1">
               <SelectedProductsList :products="selectedProducts" @remove="removeSelectedProduct" />
             </div>
           </div>
-          <div class="mt-6">
-            <label>Método de pago</label>
+
+          <div class="mt-6 space-y-4">
             <div>
+              <label class="mb-1 block text-sm font-medium text-gray-700"> Método de pago </label>
               <select
-                class="appearance-noneappearance-none w-full bg-white border border-gray-300 rounded-lg py-1 px-4 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 v-model="selectedOption"
+                class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option v-for="method in paymentMethods" :key="method.id" :value="method.id">
                   {{ method.method_name }}
@@ -209,28 +211,29 @@ watch(query, (newValue) => {
               </select>
             </div>
 
-            <div class="mt-6">
-              <label>Monto recibido</label>
+            <div v-if="selectedOption === 1">
+              <label class="mb-1 block text-sm font-medium text-gray-700"> Monto recibido </label>
               <input
-                class="appearance-noneappearance-none w-full bg-white border border-gray-300 rounded-lg py-1 px-4 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                type="number"
                 v-model="amountReceived"
+                type="number"
+                min="0"
+                step="0.01"
+                class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <hr class="mt-6" />
             </div>
 
-            <div class="m-6 flex flex-col space-y-4 text-gray-800 text-lg">
-              <div class="flex justify-between text-xl">
-                <span>Total:</span>
-                <span class="font-extrabold">${{ total }}</span>
-              </div>
+            <hr />
+
+            <div class="flex items-center justify-between text-lg text-gray-800">
+              <span>Total:</span>
+              <span class="text-2xl font-extrabold">${{ total.toFixed(2) }}</span>
             </div>
 
             <button
-              class="w-full bg-emerald-700 text-white px-4 py-2 rounded-md hover:bg-emerald-800 transition"
-              type="submit"
+              class="w-full rounded-lg bg-emerald-700 px-4 py-3 font-medium text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
+              type="button"
               @click="registerSale"
-              data-dialog-target="modal"
+              :disabled="selectedProducts.length === 0"
             >
               Cobrar
             </button>
@@ -240,16 +243,13 @@ watch(query, (newValue) => {
     </div>
   </div>
 
-  <!-- MODAL AL COBRAR -->
   <SuccessfulSale
     v-if="satisfiedSale"
     :total="saleSummary.total"
     :amount-received="saleSummary.amountReceived"
     :change="saleSummary.change"
-    @click.self="satisfiedSale = false"
   />
 </template>
-
 <style scoped>
 .pos-page {
   padding: 30px;

@@ -14,6 +14,7 @@ const credenciales = ref<Credentials>({
 })
 
 async function login() {
+  console.log('REVISANDO URL:', import.meta.env.VITE_API_BASE_URL)
   try {
     const { data, error: fetchError } = await usePublicApi('login/staff')
       .post(credenciales.value)

@@ -30,6 +30,7 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: HomeView,
+
     },
     {
       path: '/login',
@@ -79,7 +80,7 @@ const router = createRouter({
           path: 'profile/edit',
           name: 'customer-profile-edit',
           component: EditProfileView,
-        }
+        },
       ],
     },
     {
@@ -104,7 +105,7 @@ const router = createRouter({
           path: 'inventory',
           name: 'inventory',
           component: InventoryView,
-          meta: { requiresAuth: true, roles: ['Administrador'] }
+          meta: { requiresAuth: true, roles: ['Administrador'] },
         },
         {
           path: 'alerts',
@@ -151,7 +152,7 @@ const router = createRouter({
           path: 'users',
           name: 'users',
           component: UsersView,
-          meta: { requiresAuth: true, roles: ['Administrador'] },
+          meta: { requiresAuth: true, roles: ['Administrador'] ,},
         },
       ],
     },
@@ -159,9 +160,12 @@ const router = createRouter({
       path: '/unauthorized',
       name: 'unauthorized',
       component: UnauthorizedView,
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, title: 'No autorizado' },
     },
   ],
+})
+router.afterEach((to) => {
+  document.title = to.meta.title || 'Farmacia Dr. Perez'
 })
 
 

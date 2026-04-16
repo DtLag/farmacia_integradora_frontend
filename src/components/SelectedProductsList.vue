@@ -15,7 +15,7 @@ const emit = defineEmits<{
   <div class="space-y-3">
     <div
       v-if="products.length === 0"
-      class="rounded-xl border border-dashed border-gray-300 px-4 py-6 text-center text-gray-500"
+      class="rounded-xl border border-dashed border-gray-300 px-4 py-8 text-center text-sm text-gray-500"
     >
       No hay productos seleccionados
     </div>
