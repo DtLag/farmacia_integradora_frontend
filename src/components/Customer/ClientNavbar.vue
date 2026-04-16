@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useCartStore } from '@/stores/cart'
 import ClientSearchBar from './ClientSearchBar.vue'
+import { createEchoInstance } from '@/utils/echo'
 
 const authStore = useAuthStore()
 const cartStore = useCartStore()
@@ -21,6 +22,46 @@ function closeMenu() {
 }
 
 const emit = defineEmits(['onSearch'])
+
+let echo: any = null
+
+interface ToastNotification {
+  id: number;
+  message: string;
+}
+
+const toasts = ref<ToastNotification[]>([])
+let toastCounter = 0
+
+onMounted(() => {
+  if (authStore.isAuthenticated) {
+    echo = createEchoInstance()
+
+    echo.channel('public-orders')
+      .listen('.OrderStatusChanged', (e: any) => {
+          const id = toastCounter++
+          
+          toasts.value.push({
+            id,
+            message: `Tu pedido #${e.orderData.id} cambió a: ${e.orderData.state}`
+          })
+
+          setTimeout(() => {
+            closeToast(id)
+          }, 6000)
+      })
+  }
+})
+
+onUnmounted(() => {
+  if (echo) {
+    echo.leaveChannel('public-orders')
+  }
+})
+
+function closeToast(id: number) {
+  toasts.value = toasts.value.filter(t => t.id !== id)
+}
 </script>
 
 <template>
@@ -119,4 +160,42 @@ const emit = defineEmits(['onSearch'])
       </div>
     </div>
   </nav>
+
+  <div class="fixed top-20 right-4 z-50 flex flex-col gap-3 pointer-events-none w-full max-w-sm px-4 sm:px-0">
+    <transition-group name="toast">
+      <div 
+        v-for="toast in toasts" 
+        :key="toast.id"
+        class="bg-blue-50 border border-blue-200 p-4 rounded-xl shadow-lg flex items-start justify-between pointer-events-auto"
+      >
+        <div class="flex gap-3 items-center">
+          <div class="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center shrink-0">
+            <i class="fas fa-bell text-sm"></i>
+          </div>
+          <div>
+            <h4 class="font-bold text-blue-800 text-sm">Actualización de pedido</h4>
+            <p class="text-xs mt-1 text-gray-700">{{ toast.message }}</p>
+          </div>
+        </div>
+        <button @click="closeToast(toast.id)" class="text-gray-400 hover:text-gray-600 p-1">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    </transition-group>
+  </div>
 </template>
+
+<style scoped>
+.toast-enter-active,
+.toast-leave-active {
+  transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+.toast-enter-from {
+  opacity: 0;
+  transform: translateX(100%) scale(0.9);
+}
+.toast-leave-to {
+  opacity: 0;
+  transform: translateX(100%) scale(0.9);
+}
+</style>
