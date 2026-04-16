@@ -1,10 +1,15 @@
 <script setup lang="ts">
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth.ts'
 import type { PaymentMethod, Product, SaleItem } from '@/types/types.ts'
 import { useApi } from '@/composables/useApiFetch.ts'
 import { computed, onMounted, ref, watch } from 'vue'
 import ProductCard from '@/components/ProductCard.vue'
 import SuccessfulSale from '@/components/SuccessfulSale.vue'
 import SelectedProductsList from '@/components/SelectedProductsList.vue'
+
+const router = useRouter()
+const authStore = useAuthStore()
 
 const query = ref<string>('')
 const products = ref<Product[]>([])
@@ -85,7 +90,6 @@ function selectProducts(newProduct: Product) {
   const existingProduct = selectedProducts.value.find((product) => product.id === newProduct.id)
 
   if (existingProduct) {
-    // Verificamos si al agregar uno más, superamos el stock real del producto
     if (existingProduct.amount + 1 > newProduct.stock) {
       alert(`No puedes agregar más. Solo hay ${newProduct.stock} unidades de ${newProduct.name} en stock.`);
       return;
@@ -94,7 +98,6 @@ function selectProducts(newProduct: Product) {
     return
   }
 
-  // Si es la primera vez que lo agregamos, verificamos que al menos haya 1 en stock
   if (newProduct.stock < 1) {
     alert(`El producto ${newProduct.name} está agotado (Stock: 0).`);
     return;
@@ -106,10 +109,6 @@ function selectProducts(newProduct: Product) {
     sale_price: Number(newProduct.sale_price),
     amount: 1,
   })
-}
-
-function removeSelectedProduct(id: number) {
-  selectedProducts.value = selectedProducts.value.filter((product) => product.id !== id)
 }
 
 async function registerSale() {
@@ -159,17 +158,14 @@ function removeSelectedProduct(id: number) {
 }
 
 function resetPos() {
-  // Ocultamos el modal
   satisfiedSale.value = false;
   
-  // Limpiamos los valores de la venta
   selectedProducts.value = [];
   amountReceived.value = 0;
   selectedOption.value = 1;
   change.value = 0;
   query.value = '';
 
-  // Actualizamos los productos para refrescar el stock en la pantalla
   getProducts();
 }
 
@@ -206,14 +202,25 @@ watch(query, (newValue) => {
             v-for="product in products"
             :key="product.codigo"
             :product="product"
-            @click="handleSelect(product)"
+            @click="selectProducts(product)"
           />
         </div>
       </section>
 
       <aside class="pos-right">
         <div class="w-full">
-          <h1 class="text-3xl font-bold">Venta</h1>
+          
+          <div class="flex items-center justify-between mb-6">
+            <h1 class="text-3xl font-bold">Venta</h1>
+            <button
+              v-if="authStore.user?.role === 'Administrador'"
+              @click="router.push('/dashboard/tickets')"
+              class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow transition hover:bg-blue-700"
+            >
+              Revisar Tickets
+            </button>
+          </div>
+
           <div class="mt-6">
             <h2 class="mb-3 text-lg font-semibold text-gray-800">Productos seleccionados</h2>
 
@@ -226,8 +233,8 @@ watch(query, (newValue) => {
             <div>
               <label class="mb-1 block text-sm font-medium text-gray-700"> Método de pago </label>
               <select
-                class="appearance-none w-full bg-white border border-gray-300 rounded-lg py-1 px-4 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 v-model="selectedOption"
+                class="appearance-none w-full rounded-lg border border-gray-300 bg-white px-4 py-2 pr-10 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
               >
                 <option v-for="method in paymentMethods" :key="method.id" :value="method.id">
                   {{ method.method_name }}
@@ -238,11 +245,11 @@ watch(query, (newValue) => {
             <div v-if="selectedOption === 1">
               <label class="mb-1 block text-sm font-medium text-gray-700"> Monto recibido </label>
               <input
-                type="number"
                 v-model="amountReceived"
+                type="number"
                 min="0"
                 step="0.01"
-                class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="appearance-none w-full rounded-lg border border-gray-300 bg-white px-4 py-2 pr-10 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
@@ -275,6 +282,7 @@ watch(query, (newValue) => {
     @click.self="resetPos"
   />
 </template>
+
 <style scoped>
 .pos-page {
   padding: 30px;
