@@ -20,6 +20,8 @@ import UnauthorizedView from '@/views/UnauthorizedView.vue'
 import ProductsView from '@/views/Customer/Landing/ProductsView.vue'
 import CartView from '@/views/Customer/Landing/CartView.vue'
 import MyOrdersView from '@/views/Customer/Landing/MyOrdersView.vue'
+import PersonalInfoView from '@/views/Customer/Profile/PersonalInfoView.vue'
+import EditProfileView from '@/views/Customer/Profile/EditProfileView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -67,6 +69,16 @@ const router = createRouter({
           path: 'my-orders',
           name: 'my-orders',
           component: MyOrdersView,
+        },
+        {
+          path: 'profile/info',
+          name: 'customer-profile-info',
+          component: PersonalInfoView,
+        },
+        {
+          path: 'profile/edit',
+          name: 'customer-profile-edit',
+          component: EditProfileView,
         }
       ],
     },
