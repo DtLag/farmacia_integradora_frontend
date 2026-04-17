@@ -31,7 +31,6 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: HomeView,
-
     },
     {
       path: '/login',
@@ -47,118 +46,59 @@ const router = createRouter({
       path: '/customer',
       redirect: '/customer/login',
       children: [
-        {
-          path: 'login',
-          name: 'customer-login',
-          component: CustomerLoginView,
-        },
-        {
-          path: 'register',
-          name: 'customer-register',
-          component: CustomerRegisterView,
-        },
-        {
-          path: 'products',
-          name: 'products',
-          component: ProductsView,
-        },
-        {
-          path: 'cart',
-          name: 'cart',
-          component: CartView,
-        },
-        {
-          path: 'my-orders',
-          name: 'my-orders',
-          component: MyOrdersView,
-        },
-        {
-          path: 'profile/info',
-          name: 'customer-profile-info',
-          component: PersonalInfoView,
-        },
-        {
-          path: 'profile/edit',
-          name: 'customer-profile-edit',
-          component: EditProfileView,
-        },
+        { path: 'login', name: 'customer-login', component: CustomerLoginView },
+        { path: 'register', name: 'customer-register', component: CustomerRegisterView },
+        { path: 'products', name: 'products', component: ProductsView },
+        // Rutas de cliente que SÍ requieren autenticación
+        { path: 'cart', name: 'cart', component: CartView, meta: { requiresAuth: true } },
+        { path: 'my-orders', name: 'my-orders', component: MyOrdersView, meta: { requiresAuth: true } },
+        { path: 'profile/info', name: 'customer-profile-info', component: PersonalInfoView, meta: { requiresAuth: true } },
+        { path: 'profile/edit', name: 'customer-profile-edit', component: EditProfileView, meta: { requiresAuth: true } },
       ],
     },
     {
       path: '/dashboard',
       component: DashboardView,
+      meta: { requiresAuth: true, isStaff: true }, 
       children: [
-        {
-          path: '',
-          redirect: '/dashboard/pos',
-        },
-        {
-          path: 'pos',
-          name: 'pos',
-          component: PosView,
-        },
-        {
-          path: 'pickup',
-          name: 'pickup',
-          component: PickUpView,
-        },
+        { path: '', redirect: '/dashboard/pos' },
+        { path: 'pos', name: 'pos', component: PosView },
+        { path: 'pickup', name: 'pickup', component: PickUpView },
+        { path: 'alerts', name: 'alerts', component: AlertsView },
         {
           path: 'inventory',
           name: 'inventory',
           component: InventoryView,
-          meta: { requiresAuth: true, roles: ['Administrador'] },
-        },
-        {
-          path: 'alerts',
-          name: 'alerts',
-          component: AlertsView,
+          meta: { roles: ['Administrador'] },
         },
         {
           path: 'reports',
           component: ReportsView,
-          meta: { requiresAuth: true, roles: ['Administrador'] },
+          meta: { roles: ['Administrador'] },
           children: [
-            {
-              path: '',
-              redirect: '/dashboard/reports/reports-sales',
-              meta: { requiresAuth: true, roles: [1] },
-            },
-            {
-              path: 'reports-sales',
-              name: 'salesReport',
-              component: SalesReport,
-              meta: { requiresAuth: true, roles: ['Administrador'] },
-            },
-            {
-              path: 'reports-inventory',
-              name: 'inventoryReport',
-              component: InventoryReport,
-              meta: { requiresAuth: true, roles: ['Administrador'] },
-            },
-            {
-              path: 'reports-users',
-              name: 'usersReport',
-              component: UserReport,
-            },
+            { path: '', redirect: '/dashboard/reports/reports-sales' },
+            { path: 'reports-sales', name: 'salesReport', component: SalesReport },
+            { path: 'reports-inventory', name: 'inventoryReport', component: InventoryReport },
+            { path: 'reports-users', name: 'usersReport', component: UserReport },
           ],
         },
         {
           path: 'audits',
           name: 'audits',
           component: AuditsView,
-          meta: { requiresAuth: true, roles: ['Administrador'] },
+          meta: { roles: ['Administrador'] },
         },
         {
           path: 'users',
           name: 'users',
           component: UsersView,
-          meta: { requiresAuth: true, roles: ['Administrador'] ,},
+          meta: { roles: ['Administrador'] },
         },
         {
           path: 'tickets',
           name: 'tickets',
           component: TicketView,
-          meta: { requiresAuth: true, roles: ['Administrador'] },
+          meta: { roles: ['Administrador'] },
         },
       ],
     },
@@ -166,39 +106,49 @@ const router = createRouter({
       path: '/unauthorized',
       name: 'unauthorized',
       component: UnauthorizedView,
-      meta: { requiresAuth: true, title: 'No autorizado' },
+      meta: { title: 'No autorizado' },
     },
   ],
 })
-router.afterEach((to) => {
-  document.title = (to.meta.title as string) || 'Farmacia Dr. Perez'
-})
 
+router.afterEach((to) => {
+  document.title = (to.meta.title as string) || 'Farmacia Integradora'
+})
 
 router.beforeEach((to) => {
   const authStore = useAuthStore()
 
   const isAuthenticated = !!authStore.token && !!authStore.user
-  const userRole = authStore.user?.role
+  const isStaffUser = !!authStore.user?.role
 
-  if (to.name === 'login' && !isAuthenticated) {
-    return true
+  if (to.matched.some((record) => record.meta.requiresAuth)) {
+    if (!isAuthenticated) {
+      return to.path.startsWith('/customer') ? { name: 'customer-login' } : { name: 'login' }
+    }
   }
 
-  if (to.matched.some((record) => record.meta.requiresAuth) && !isAuthenticated) {
-    return { name: 'login' }
+  if (['login', 'customer-login', 'customer-register'].includes(to.name as string) && isAuthenticated) {
+    return { name: isStaffUser ? 'pos' : 'home' }
   }
 
-  if (to.name === 'login' && isAuthenticated) {
-    return { name: 'pos' }
+  if (to.matched.some((record) => record.meta.isStaff)) {
+    if (!isStaffUser) {
+      return { name: 'unauthorized' } 
+    }
   }
 
   const allowedRoles = to.matched
     .map((record) => record.meta.roles)
     .find((roles) => Array.isArray(roles)) as string[] | undefined
 
-  if (allowedRoles && (!userRole || !allowedRoles.includes(userRole))) {
-    return { name: 'unauthorized' }
+  if (allowedRoles && isStaffUser) {
+    const currentRole = typeof authStore.user?.role === 'string' 
+      ? authStore.user.role 
+      : (authStore.user?.role as any)?.slug || (authStore.user?.role as any)?.name
+
+    if (!currentRole || !allowedRoles.includes(currentRole)) {
+      return { name: 'unauthorized' }
+    }
   }
 
   return true
