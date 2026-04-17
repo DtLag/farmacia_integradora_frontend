@@ -3,7 +3,7 @@ import { useAuthStore } from '@/stores/auth'
 import router from '@/router'
 
 export const useApi = createFetch({
-  baseUrl: 'https://api.harold-dev.me/api',
+  baseUrl: import.meta.env.VITE_API_BASE_URL,
 
   options: {
     async beforeFetch({ options, cancel }) {

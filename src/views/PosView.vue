@@ -3,10 +3,11 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.ts'
 import type { PaymentMethod, Product, SaleItem } from '@/types/types.ts'
 import { useApi } from '@/composables/useApiFetch.ts'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import ProductCard from '@/components/ProductCard.vue'
 import SuccessfulSale from '@/components/SuccessfulSale.vue'
 import SelectedProductsList from '@/components/SelectedProductsList.vue'
+import { createEchoInstance } from '@/utils/echo'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -26,6 +27,8 @@ const saleSummary = ref({
   change: 0,
 })
 
+let echo: any = null
+
 const total = computed(() => {
   return selectedProducts.value.reduce(
     (acc, product) => acc + product.sale_price * product.amount,
@@ -38,7 +41,27 @@ let debounceTimeout: ReturnType<typeof setTimeout> | null = null
 onMounted(() => {
   getProducts()
   getPaymentMethod()
-})
+
+  echo = createEchoInstance();
+
+  echo.channel('public-inventory')
+  .listen('.ProductStockUpdated', (evento: any) => {
+    console.log('Evento WebSockets Recibido:', evento.product);
+
+    const productToUpdate = products.value.find((p: any) => p.id === evento.product.id);
+    
+    if (productToUpdate) {
+      productToUpdate.stock = evento.product.stock;
+      console.log(`¡El stock de ${evento.product.name} se actualizó visualmente a ${evento.product.stock}!`);
+    }
+  });
+});
+
+onUnmounted(() => {
+  if (echo) {
+    echo.leaveChannel('public-inventory')
+  }
+});
 
 async function getPaymentMethod() {
   const response = await useApi('payment/methods', {}).get().json()

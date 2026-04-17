@@ -20,13 +20,15 @@ onMounted(() => {
 
     echo.private('staff.orders')
       .listen('.NewPickUpOrder', (e: any) => {
-          console.log('🔔 ¡Nuevo pedido recibido!', e.orderData);
+          console.log('¡Nuevo pedido recibido!', e.order);
           if (orderStore.currentState === 'pending') {
               orderStore.getOrders('pending');
           }
-      })
+      });
+
+    echo.channel('public-orders')
       .listen('.OrderStatusChanged', (e: any) => {
-          console.log('🔄 Estado de un pedido actualizado', e.orderData);
+          console.log('Estado de un pedido actualizado', e.order);
           orderStore.getOrders(orderStore.currentState);
       });
   } else {
