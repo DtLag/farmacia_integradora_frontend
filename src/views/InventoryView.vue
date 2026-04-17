@@ -13,8 +13,8 @@ function apiUrl(path: string) {
   return `${API_BASE_URL}/${path.replace(/^\/+/, '')}`
 }
 
-interface InventoryProduct { id:number; codigo:string; name:string; presentation:string|null; purchase_price:number|string; sale_price:number|string; location:string|null; stock:number; min_stock:number; max_stock:number|null; description:string|null; expiration_date:string|null; category_name:string|null; supplier_name:string|null; deleted_at?:string|null; status?:string; active?:boolean; is_active?:boolean }
-interface InventoryBatchItem { id:number; amount:number; unit_price:number|string; reception_date:string|null; expiration_date:string|null; registered_by:string|null; product:{ id:number|null; codigo:string|null; name:string|null; location:string|null; stock:number|null; category_name:string|null; supplier_name:string|null; deleted_at?:string|null; status?:string; active?:boolean; is_active?:boolean }; batch:{ id:number|null; identifier_batch:string|null; entry_date:string|null; supplier_name:string|null } }
+interface InventoryProduct { id:number; codigo:string; name:string; presentation:string|null; purchase_price:number|string; sale_price:number|string; location:string|null; stock:number; min_stock:number; max_stock:number|null; description:string|null; expiration_date:string|null; category_name:string|null; supplier_name:string|null; deleted_at?:string|null; status?:string; active?:boolean; is_active?:boolean; image_url?: string | null; image?: string | null }
+interface InventoryBatchItem { id:number; amount:number; unit_price:number|string; reception_date:string|null; expiration_date:string|null; registered_by:string|null; product:{ id:number|null; codigo:string|null; name:string|null; location:string|null; stock:number|null; category_name:string|null; supplier_name:string|null; deleted_at?:string|null; status?:string; active?:boolean; is_active?:boolean }; batch:{ id:number|null; identifier_batch:string|null; entry_date:string|null; supplier_name:string|null }; image_url?: string | null; image?: string | null }
 interface SelectOption { id:number; name:string }
 interface ProductForm { codigo:string; name:string; presentation:string; purchase_price:number; sale_price:number; location:string; min_stock:number; max_stock:number|null; description:string; supplier_id:number|null; category_id:number|null; image:File|null }
 interface BatchFormItem { product_id:number|null; amount:number; unit_price:number; expiration_date:string }
@@ -208,17 +208,42 @@ async function submitProduct() {
   isSavingProduct.value = true
   try {
     const formData = new FormData()
+    
+    // 1. EL TRUCO PARA LARAVEL: Si es edición, añadimos el _method
+    if (isEditingProduct.value) {
+      formData.append('_method', 'PATCH') 
+    }
+
     for (const [key, value] of Object.entries(productForm.value)) {
       if (value !== null && value !== '') formData.append(key, value instanceof File ? value : String(value))
     }
-    const response = await fetch(apiUrl(isEditingProduct.value ? `/products/${editingProductId.value}` : '/products'), { method:isEditingProduct.value ? 'PATCH' : 'POST', headers:{ Accept:'application/json', Authorization:`Bearer ${authStore.token}` }, body:formData })
+    
+    // 2. LA PETICIÓN: SIEMPRE se envía como POST
+    const response = await fetch(apiUrl(isEditingProduct.value ? `/products/${editingProductId.value}` : '/products'), { 
+      method: 'POST', // <-- CAMBIO IMPORTANTE: Siempre es POST
+      headers: { 
+        Accept: 'application/json', 
+        Authorization: `Bearer ${authStore.token}` 
+      }, 
+      body: formData 
+    })
+    
     const body = await response.json().catch(() => null)
-    if (!response.ok) { productError.value = body?.message || `No se pudo ${isEditingProduct.value ? 'actualizar' : 'guardar'} el producto.`; return }
+    
+    if (!response.ok) { 
+      productError.value = body?.message || `No se pudo ${isEditingProduct.value ? 'actualizar' : 'guardar'} el producto.`; 
+      return 
+    }
+    
     feedbackSuccess.value = body?.message || `Producto ${isEditingProduct.value ? 'actualizado' : 'agregado'} correctamente.`
     closeProductModal()
     productForm.value = initialProduct()
     await Promise.all([loadInventory(query.value.trim()), loadProductOptions()])
-  } catch { productError.value = 'Ocurrio un error al guardar el producto.' } finally { isSavingProduct.value = false }
+  } catch { 
+    productError.value = 'Ocurrió un error al guardar el producto.' 
+  } finally { 
+    isSavingProduct.value = false 
+  }
 }
 
 async function submitBatch() {

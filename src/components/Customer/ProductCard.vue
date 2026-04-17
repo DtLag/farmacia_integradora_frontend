@@ -20,19 +20,21 @@ const hasAvailableStock = computed(() => {
 
 const productImageUrl = computed(() => {
   const rawUrl = props.product.image_url
-  const apiOrigin = new URL(import.meta.env.VITE_API_BASE_URL ?? 'https://api.harold-dev.me/api').origin
 
   if (!rawUrl) return 'https://via.placeholder.com/300x200?text=Sin+Imagen'
 
-  try {
-    const parsed = new URL(rawUrl, apiOrigin)
-    if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') {
-      return `${apiOrigin}${parsed.pathname}`
-    }
-    return parsed.href
-  } catch {
-    return `${apiOrigin}${rawUrl.startsWith('/') ? rawUrl : `/${rawUrl}`}`
+  if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
+    return rawUrl
   }
+
+  const baseUrl = (import.meta.env.VITE_API_BASE_URL || 'https://api.harold-dev.me/api').replace(/\/api\/?$/, '')
+
+  let path = rawUrl.startsWith('/') ? rawUrl : `/${rawUrl}`
+  if (!path.startsWith('/storage/')) {
+    path = `/storage${path}`
+  }
+
+  return `${baseUrl}${path}`
 })
 
 const emit = defineEmits(['add-to-cart'])
