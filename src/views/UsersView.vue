@@ -30,6 +30,8 @@ interface PermissionGroup {
   items: { name: string; allowed: boolean }[]
 }
 
+type RoleSlug = 'admin' | 'vendedor'
+
 interface UserCardData {
   id: number
   firstName: string
@@ -39,8 +41,8 @@ interface UserCardData {
   code: string
   initials: string
   role: string
-  roleId: number
-  roleSlug: 'admin' | 'vendedor'
+  roleId?: number
+  roleSlug: RoleSlug
   status: 'Activo' | 'Inactivo'
   accent: string
   lastAccess: string
@@ -66,8 +68,8 @@ const isChangingStatus = ref(false)
 const filterOptions: FilterKey[] = ['Todos', 'Administradores', 'Empleados', 'Inactivos']
 const accentPalette = ['#f97316', '#0f766e', '#2563eb', '#eab308', '#ef4444', '#8b5cf6']
 
-const createForm = reactive({ name: '', last_name: '', email: '', user_id: '', password: '', role_id: 2 })
-const editForm = reactive({ id: 0, name: '', last_name: '', email: '', role_id: 2, password: '' })
+const createForm = reactive({ name: '', last_name: '', email: '', user_id: '', password: '', role: 'vendedor' as RoleSlug })
+const editForm = reactive({ id: 0, name: '', last_name: '', email: '', role: 'vendedor' as RoleSlug, password: '' })
 
 const totalUsers = computed(() => users.value.length)
 const adminUsers = computed(() => users.value.filter((user) => user.roleSlug === 'admin').length)
@@ -139,8 +141,8 @@ async function loadUsers() {
 
 function normalizeUser(user: StaffApiItem, index: number): UserCardData {
   const role = getRoleName(user)
-  const roleId = typeof user.role_id === 'number' && user.role_id > 0 ? user.role_id : role === 'Administrador' ? 1 : 2
-  const roleSlug = roleId === 1 ? 'admin' : 'vendedor'
+  const roleId = typeof user.role_id === 'number' && user.role_id > 0 ? user.role_id : undefined
+  const roleSlug = getRoleSlug(user)
   const status = getStatus(user)
   return {
     id: user.id,
@@ -176,6 +178,20 @@ function getRoleName(user: StaffApiItem) {
   return user.role_id === 1 ? 'Administrador' : 'Empleado'
 }
 
+function getRoleSlug(user: StaffApiItem): RoleSlug {
+  if (typeof user.role === 'object') {
+    const source = `${user.role.slug ?? ''} ${user.role.name ?? ''}`.toLowerCase()
+    if (source.includes('admin')) return 'admin'
+    if (source.includes('vend') || source.includes('emple')) return 'vendedor'
+  }
+  if (typeof user.role === 'string') {
+    const value = user.role.trim().toLowerCase()
+    if (value.includes('admin')) return 'admin'
+    if (value.includes('vend') || value.includes('emple')) return 'vendedor'
+  }
+  return user.role_id === 1 ? 'admin' : 'vendedor'
+}
+
 function getStatus(user: StaffApiItem): 'Activo' | 'Inactivo' {
   if (user.deleted_at) return 'Inactivo'
   if (typeof user.status === 'string') return user.status.toLowerCase().includes('inac') ? 'Inactivo' : 'Activo'
@@ -184,7 +200,7 @@ function getStatus(user: StaffApiItem): 'Activo' | 'Inactivo' {
   return 'Activo'
 }
 
-function buildPermissions(roleSlug: 'admin' | 'vendedor', status: 'Activo' | 'Inactivo'): PermissionGroup[] {
+function buildPermissions(roleSlug: RoleSlug, status: 'Activo' | 'Inactivo'): PermissionGroup[] {
   const isAdmin = roleSlug === 'admin'
   const isActive = status === 'Activo'
   return [
@@ -211,7 +227,7 @@ function buildUserCode() {
 function openCreateModal() {
   errorMessage.value = ''
   successMessage.value = ''
-  Object.assign(createForm, { name: '', last_name: '', email: '', user_id: buildUserCode(), password: '', role_id: 2 })
+  Object.assign(createForm, { name: '', last_name: '', email: '', user_id: buildUserCode(), password: '', role: 'vendedor' as RoleSlug })
   isCreateModalOpen.value = true
 }
 
@@ -225,7 +241,7 @@ function syncEditForm(user: UserCardData) {
     name: user.firstName,
     last_name: user.lastName,
     email: user.email,
-    role_id: user.roleId,
+    role: user.roleSlug,
     password: '',
   })
 }
@@ -246,7 +262,7 @@ async function submitCreate() {
       email: createForm.email.trim(),
       user_id: createForm.user_id.trim().toUpperCase(),
       password: createForm.password.trim(),
-      role_id: Number(createForm.role_id),
+      role: createForm.role,
     })
     successMessage.value = 'Usuario creado correctamente.'
     isCreateModalOpen.value = false
@@ -268,7 +284,7 @@ async function submitEdit() {
     name: editForm.name.trim(),
     last_name: editForm.last_name.trim(),
     email: editForm.email.trim(),
-    role: editForm.role_id === 1 ? 'admin' : 'vendedor',
+    role: editForm.role,
   }
   if (editForm.password.trim()) payload.password = editForm.password.trim()
   try {
@@ -353,7 +369,7 @@ function extractApiMessage(error: unknown, fallback: string) {
   if (typeof error !== 'object' || error === null) return fallback
   const response = error as { message?: string; data?: { message?: string; errors?: Record<string, string[]> } }
   const details = response.data?.errors ? Object.values(response.data.errors).flat().join(' ') : ''
-  return response.data?.message || response.message || details || fallback
+  return details || response.data?.message || response.message || fallback
 }
 
 function getErrorMessage(error: unknown, fallback: string) {
@@ -535,7 +551,7 @@ function getErrorMessage(error: unknown, fallback: string) {
                     <div class="space-y-1"><label class="text-xs font-bold text-gray-500">Apellido</label><input v-model="editForm.last_name" type="text" required class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"/></div>
                 </div>
                 <div class="space-y-1"><label class="text-xs font-bold text-gray-500">Email</label><input v-model="editForm.email" type="email" required class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"/></div>
-                <div class="space-y-1"><label class="text-xs font-bold text-gray-500">Rol</label><select v-model.number="editForm.role_id" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"><option :value="1">Administrador</option><option :value="2">Empleado</option></select></div>
+                <div class="space-y-1"><label class="text-xs font-bold text-gray-500">Rol</label><select v-model="editForm.role" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"><option value="admin">Administrador</option><option value="vendedor">Empleado</option></select></div>
                 <div class="space-y-1"><label class="text-xs font-bold text-gray-500">Nueva contraseña</label><input v-model="editForm.password" type="password" minlength="8" placeholder="Opcional..." class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"/></div>
                 <button type="submit" :disabled="isSavingEdit" class="w-full mt-2 bg-[#0B369E] hover:bg-blue-800 text-white py-2.5 rounded-lg font-bold text-sm transition-colors disabled:opacity-50 shadow-md">
                   {{ isSavingEdit ? 'Guardando...' : 'Guardar cambios' }}
@@ -590,7 +606,7 @@ function getErrorMessage(error: unknown, fallback: string) {
             <div class="space-y-1.5"><label class="text-xs font-bold text-gray-600 uppercase tracking-wider">Email</label><input v-model="createForm.email" type="email" required class="w-full px-4 py-2.5 bg-gray-50 focus:bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"/></div>
             <div class="space-y-1.5"><label class="text-xs font-bold text-gray-600 uppercase tracking-wider">Clave Acceso</label><input v-model="createForm.user_id" type="text" required class="w-full px-4 py-2.5 bg-gray-50 focus:bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"/></div>
             <div class="space-y-1.5"><label class="text-xs font-bold text-gray-600 uppercase tracking-wider">Contraseña</label><input v-model="createForm.password" type="password" minlength="8" required class="w-full px-4 py-2.5 bg-gray-50 focus:bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"/></div>
-            <div class="space-y-1.5"><label class="text-xs font-bold text-gray-600 uppercase tracking-wider">Rol</label><select v-model.number="createForm.role_id" class="w-full px-4 py-2.5 bg-gray-50 focus:bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"><option :value="1">Administrador</option><option :value="2">Empleado</option></select></div>
+            <div class="space-y-1.5"><label class="text-xs font-bold text-gray-600 uppercase tracking-wider">Rol</label><select v-model="createForm.role" class="w-full px-4 py-2.5 bg-gray-50 focus:bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"><option value="admin">Administrador</option><option value="vendedor">Empleado</option></select></div>
           </div>
           
           <div class="mt-8 flex gap-3 pt-6 border-t border-gray-100">
