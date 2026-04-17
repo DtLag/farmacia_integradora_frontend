@@ -30,6 +30,8 @@ interface PermissionGroup {
   items: { name: string; allowed: boolean }[]
 }
 
+type RoleSlug = 'admin' | 'vendedor'
+
 interface UserCardData {
   id: number
   firstName: string
@@ -39,8 +41,8 @@ interface UserCardData {
   code: string
   initials: string
   role: string
-  roleId: number
-  roleSlug: 'admin' | 'vendedor'
+  roleId?: number
+  roleSlug: RoleSlug
   status: 'Activo' | 'Inactivo'
   accent: string
   lastAccess: string
@@ -66,8 +68,8 @@ const isChangingStatus = ref(false)
 const filterOptions: FilterKey[] = ['Todos', 'Administradores', 'Empleados', 'Inactivos']
 const accentPalette = ['#f97316', '#0f766e', '#2563eb', '#eab308', '#ef4444', '#8b5cf6']
 
-const createForm = reactive({ name: '', last_name: '', email: '', user_id: '', password: '', role_id: 2 })
-const editForm = reactive({ id: 0, name: '', last_name: '', email: '', role_id: 2, password: '' })
+const createForm = reactive({ name: '', last_name: '', email: '', user_id: '', password: '', role_id: '' })
+const editForm = reactive({ id: 0, name: '', last_name: '', email: '', role: 'vendedor' as RoleSlug, password: '' })
 
 const totalUsers = computed(() => users.value.length)
 const adminUsers = computed(() => users.value.filter((user) => user.roleSlug === 'admin').length)
@@ -139,8 +141,8 @@ async function loadUsers() {
 
 function normalizeUser(user: StaffApiItem, index: number): UserCardData {
   const role = getRoleName(user)
-  const roleId = typeof user.role_id === 'number' && user.role_id > 0 ? user.role_id : role === 'Administrador' ? 1 : 2
-  const roleSlug = roleId === 1 ? 'admin' : 'vendedor'
+  const roleId = typeof user.role_id === 'number' && user.role_id > 0 ? user.role_id : undefined
+  const roleSlug = getRoleSlug(user)
   const status = getStatus(user)
   return {
     id: user.id,
@@ -176,6 +178,20 @@ function getRoleName(user: StaffApiItem) {
   return user.role_id === 1 ? 'Administrador' : 'Empleado'
 }
 
+function getRoleSlug(user: StaffApiItem): RoleSlug {
+  if (typeof user.role === 'object') {
+    const source = `${user.role.slug ?? ''} ${user.role.name ?? ''}`.toLowerCase()
+    if (source.includes('admin')) return 'admin'
+    if (source.includes('vend') || source.includes('emple')) return 'vendedor'
+  }
+  if (typeof user.role === 'string') {
+    const value = user.role.trim().toLowerCase()
+    if (value.includes('admin')) return 'admin'
+    if (value.includes('vend') || value.includes('emple')) return 'vendedor'
+  }
+  return user.role_id === 1 ? 'admin' : 'vendedor'
+}
+
 function getStatus(user: StaffApiItem): 'Activo' | 'Inactivo' {
   if (user.deleted_at) return 'Inactivo'
   if (typeof user.status === 'string') return user.status.toLowerCase().includes('inac') ? 'Inactivo' : 'Activo'
@@ -184,18 +200,24 @@ function getStatus(user: StaffApiItem): 'Activo' | 'Inactivo' {
   return 'Activo'
 }
 
-function buildPermissions(roleSlug: 'admin' | 'vendedor', status: 'Activo' | 'Inactivo'): PermissionGroup[] {
+function buildPermissions(roleSlug: RoleSlug, status: 'Activo' | 'Inactivo'): PermissionGroup[] {
   const isAdmin = roleSlug === 'admin'
   const isActive = status === 'Activo'
   return [
-    { title: 'Operacion', items: [{ name: 'Registrar ventas', allowed: isActive }, { name: 'Procesar pedidos', allowed: isActive }] },
+    { title: 'Operación', items: [{ name: 'Registrar ventas', allowed: isActive }, { name: 'Procesar pedidos', allowed: isActive }] },
     { title: 'Inventario', items: [{ name: 'Consultar stock', allowed: isActive }, { name: 'Ajustar inventario', allowed: isAdmin && isActive }] },
-    { title: 'Administracion', items: [{ name: 'Gestionar usuarios', allowed: isAdmin && isActive }, { name: 'Ver auditoria', allowed: isAdmin && isActive }] },
+    { title: 'Administración', items: [{ name: 'Gestionar usuarios', allowed: isAdmin && isActive }, { name: 'Ver auditoría', allowed: isAdmin && isActive }] },
   ]
 }
 
 function selectUser(userId: number) {
   selectedUserId.value = userId
+  // Si estamos en móvil, scrollear suavemente a los detalles
+  if(window.innerWidth < 1024) {
+    setTimeout(() => {
+        document.getElementById('user-details-section')?.scrollIntoView({ behavior: 'smooth' })
+    }, 100)
+  }
 }
 
 function buildUserCode() {
@@ -219,7 +241,7 @@ function syncEditForm(user: UserCardData) {
     name: user.firstName,
     last_name: user.lastName,
     email: user.email,
-    role_id: user.roleId,
+    role: user.roleSlug,
     password: '',
   })
 }
@@ -240,7 +262,7 @@ async function submitCreate() {
       email: createForm.email.trim(),
       user_id: createForm.user_id.trim().toUpperCase(),
       password: createForm.password.trim(),
-      role_id: Number(createForm.role_id),
+      role_id: createForm.role_id,
     })
     successMessage.value = 'Usuario creado correctamente.'
     isCreateModalOpen.value = false
@@ -262,7 +284,7 @@ async function submitEdit() {
     name: editForm.name.trim(),
     last_name: editForm.last_name.trim(),
     email: editForm.email.trim(),
-    role: editForm.role_id === 1 ? 'admin' : 'vendedor',
+    role: editForm.role,
   }
   if (editForm.password.trim()) payload.password = editForm.password.trim()
   try {
@@ -340,204 +362,263 @@ async function restoreStaff(userId: number) {
 }
 
 function ensureAuthenticated() {
-  if (!authStore.token) throw new Error('Tu sesion expiro. Vuelve a iniciar sesion para administrar usuarios.')
+  if (!authStore.token) throw new Error('Tu sesión expiró. Vuelve a iniciar sesión para administrar usuarios.')
 }
 
 function extractApiMessage(error: unknown, fallback: string) {
   if (typeof error !== 'object' || error === null) return fallback
   const response = error as { message?: string; data?: { message?: string; errors?: Record<string, string[]> } }
   const details = response.data?.errors ? Object.values(response.data.errors).flat().join(' ') : ''
-  return response.data?.message || response.message || details || fallback
+  return details || response.data?.message || response.message || fallback
 }
 
 function getErrorMessage(error: unknown, fallback: string) {
   if (!(error instanceof Error)) return fallback
   const message = error.message.toLowerCase()
-  if (message.includes('unauthenticated')) return 'Tu sesion ya no es valida. Cierra sesion y vuelve a entrar para administrar usuarios.'
-  if (message.includes('403') || message.includes('forbidden') || message.includes('no autorizado')) {
-    return 'El backend actual esta devolviendo 403 para editar o deshabilitar. UserController existe, pero la validacion de admin no coincide con el modelo autenticado.'
-  }
-  if (message.includes('422') || message.includes('validation')) {
-    return 'El backend rechazo los datos. Verifica nombre, apellido, email unico, password minima de 8, user_id unico y role_id valido.'
-  }
+  if (message.includes('unauthenticated')) return 'Tu sesión ya no es válida. Cierra sesión y vuelve a entrar.'
+  if (message.includes('403') || message.includes('forbidden')) return 'No tienes permisos para realizar esta acción.'
+  if (message.includes('422') || message.includes('validation')) return 'El formulario contiene errores. Verifica la información (correo único, contraseña mín. 8 caracteres, etc).'
   return error.message || fallback
 }
 </script>
 
 <template>
-  <div class="users-page">
-    <section class="staff-studio">
-      <aside class="studio-sidebar">
-        <div class="sidebar-head">
+  <div class="min-h-[calc(100vh-3.5rem)] bg-gradient-to-br from-gray-50 via-blue-50/30 to-gray-100 p-4 sm:p-6 lg:p-8">
+    
+    <div class="max-w-[1500px] mx-auto flex flex-col lg:flex-row gap-6 h-auto lg:h-[calc(100vh-7rem)]">
+      
+      <aside class="w-full lg:w-5/12 bg-white/90 backdrop-blur-sm rounded-[28px] shadow-sm border border-gray-200 p-5 sm:p-6 flex flex-col h-[600px] lg:h-full shrink-0">
+        
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
           <div>
-            <p class="eyebrow">Panel de staff</p>
-            <h1>Usuarios del sistema</h1>
-            <p class="lead">Selecciona una tarjeta y su ficha aparecera en el panel derecho.</p>
+            <p class="text-[10px] sm:text-xs font-extrabold uppercase tracking-widest text-blue-700 mb-1">Panel de staff</p>
+            <h1 class="text-xl sm:text-2xl font-bold text-gray-900">Usuarios del sistema</h1>
           </div>
-          <button class="btn primary" @click="openCreateModal">Nuevo staff</button>
+          <button class="w-full sm:w-auto bg-[#0B369E] hover:bg-blue-800 text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-md active:scale-95" @click="openCreateModal">
+            <i class="fas fa-plus"></i> Nuevo staff
+          </button>
         </div>
 
-        <div class="stats-grid">
-          <article><span>Total</span><strong>{{ totalUsers }}</strong></article>
-          <article><span>Admins</span><strong>{{ adminUsers }}</strong></article>
-          <article><span>Empleados</span><strong>{{ employeeUsers }}</strong></article>
-          <article><span>Inactivos</span><strong>{{ inactiveUsers }}</strong></article>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+          <article class="p-3 rounded-2xl bg-gradient-to-br from-blue-50 to-white border border-blue-100">
+            <span class="block text-[10px] uppercase font-bold text-blue-700">Total</span>
+            <strong class="block text-2xl font-black text-gray-900 mt-1">{{ totalUsers }}</strong>
+          </article>
+          <article class="p-3 rounded-2xl bg-gradient-to-br from-emerald-50 to-white border border-emerald-100">
+            <span class="block text-[10px] uppercase font-bold text-emerald-700">Admins</span>
+            <strong class="block text-2xl font-black text-gray-900 mt-1">{{ adminUsers }}</strong>
+          </article>
+          <article class="p-3 rounded-2xl bg-gradient-to-br from-purple-50 to-white border border-purple-100">
+            <span class="block text-[10px] uppercase font-bold text-purple-700">Empleados</span>
+            <strong class="block text-2xl font-black text-gray-900 mt-1">{{ employeeUsers }}</strong>
+          </article>
+          <article class="p-3 rounded-2xl bg-gradient-to-br from-rose-50 to-white border border-rose-100">
+            <span class="block text-[10px] uppercase font-bold text-rose-700">Inactivos</span>
+            <strong class="block text-2xl font-black text-gray-900 mt-1">{{ inactiveUsers }}</strong>
+          </article>
         </div>
 
-        <p v-if="successMessage" class="feedback ok">{{ successMessage }}</p>
-        <p v-if="errorMessage" class="feedback error">{{ errorMessage }}</p>
-        <input v-model="searchQuery" class="search-input" type="text" placeholder="Buscar por nombre, correo o clave" />
+        <div v-if="successMessage" class="px-4 py-3 rounded-xl bg-emerald-100 text-emerald-800 font-bold text-sm mb-4 border border-emerald-200">
+          <i class="fas fa-check-circle"></i> {{ successMessage }}
+        </div>
+        <div v-if="errorMessage" class="px-4 py-3 rounded-xl bg-rose-100 text-rose-800 font-bold text-sm mb-4 border border-rose-200">
+          <i class="fas fa-exclamation-triangle"></i> {{ errorMessage }}
+        </div>
 
-        <div class="filter-row">
+        <div class="relative mb-4">
+          <input v-model="searchQuery" type="text" placeholder="Buscar por nombre, correo o clave..." class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white outline-none focus:ring-2 focus:ring-[#0B369E] transition-all text-sm" />
+          <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+        </div>
+
+        <div class="flex flex-wrap gap-2 mb-4 overflow-x-auto pb-2 scrollbar-hide">
           <button
             v-for="filter in filterOptions"
             :key="filter"
-            class="pill"
-            :class="{ active: activeFilter === filter }"
+            class="px-4 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap"
+            :class="activeFilter === filter ? 'bg-gray-900 text-white shadow-md' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'"
             @click="activeFilter = filter"
           >
             {{ filter }}
           </button>
         </div>
 
-        <div class="staff-list">
-          <p v-if="isLoading" class="panel-message">Cargando staff...</p>
-          <p v-else-if="filteredUsers.length === 0" class="panel-message">No se encontraron usuarios.</p>
+        <div class="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-thin">
+          <div v-if="isLoading" class="text-center p-8 bg-gray-50 rounded-2xl border border-dashed border-gray-200 text-gray-500 font-medium">
+            <i class="fas fa-spinner animate-spin text-2xl mb-2 text-blue-500"></i><br> Cargando staff...
+          </div>
+          <div v-else-if="filteredUsers.length === 0" class="text-center p-8 bg-gray-50 rounded-2xl border border-dashed border-gray-200 text-gray-500 font-medium">
+            <i class="fas fa-users-slash text-2xl mb-2 text-gray-400"></i><br> No se encontraron usuarios.
+          </div>
+          
           <button
             v-for="user in filteredUsers"
             v-else
             :key="user.id"
             type="button"
-            class="staff-card"
-            :class="{ selected: selectedUser?.id === user.id }"
-            :style="{ '--accent': user.accent }"
+            class="w-full text-left p-4 border rounded-2xl bg-white transition-all duration-200"
+            :class="selectedUser?.id === user.id ? 'border-l-4 shadow-md bg-blue-50/30 ring-1 ring-blue-100' : 'border-gray-100 border-l-4 border-l-transparent hover:shadow-sm'"
+            :style="{ borderLeftColor: selectedUser?.id === user.id ? user.accent : 'transparent' }"
             @click="selectUser(user.id)"
           >
-            <div class="card-top">
-              <span class="avatar">{{ user.initials }}</span>
-              <div>
-                <strong>{{ user.fullName }}</strong>
-                <p>{{ user.email }}</p>
+            <div class="flex items-center gap-4 mb-3">
+              <div class="w-12 h-12 rounded-xl flex items-center justify-center text-white font-black text-lg shrink-0 shadow-sm" :style="{ backgroundColor: user.accent }">
+                {{ user.initials }}
               </div>
-              <span class="dot" :class="{ inactive: user.status === 'Inactivo' }"></span>
+              <div class="flex-grow min-w-0">
+                <strong class="block text-gray-900 truncate">{{ user.fullName }}</strong>
+                <p class="text-xs text-gray-500 truncate">{{ user.email }}</p>
+              </div>
+              <div class="w-3 h-3 rounded-full shrink-0" :class="user.status === 'Activo' ? 'bg-emerald-500 ring-4 ring-emerald-500/20' : 'bg-rose-500 ring-4 ring-rose-500/20'"></div>
             </div>
-            <div class="card-tags">
-              <span>{{ user.role }}</span>
-              <span>{{ user.code }}</span>
+            <div class="flex flex-wrap gap-2 mb-3">
+              <span class="px-2.5 py-1 bg-gray-100 text-gray-600 rounded-md text-[10px] font-bold uppercase tracking-wider">{{ user.role }}</span>
+              <span class="px-2.5 py-1 bg-gray-100 text-gray-600 rounded-md text-[10px] font-bold uppercase tracking-wider">{{ user.code }}</span>
             </div>
-            <div class="card-meta">
-              <small>{{ user.salesToday }}</small>
-              <small>{{ user.lastAccess }}</small>
+            <div class="flex justify-between items-center text-[10px] sm:text-xs text-gray-400 font-medium">
+              <span><i class="fas fa-chart-line mr-1"></i> {{ user.salesToday }}</span>
+              <span><i class="fas fa-clock mr-1"></i> {{ user.lastAccess }}</span>
             </div>
           </button>
         </div>
       </aside>
 
-      <section class="studio-detail">
-        <div v-if="selectedUser" class="detail-stack">
-          <article class="hero" :style="{ '--hero': selectedUser.accent }">
-            <div class="hero-head">
+      <section id="user-details-section" class="w-full lg:w-7/12 flex flex-col h-auto lg:h-full overflow-hidden shrink-0">
+        
+        <div v-if="selectedUser" class="flex-1 overflow-y-auto space-y-4 sm:space-y-6 pr-1 sm:pr-2 pb-6 lg:pb-0">
+          
+          <article class="p-6 sm:p-8 rounded-[28px] text-white shadow-lg relative overflow-hidden" :style="{ background: `linear-gradient(145deg, ${selectedUser.accent}, #1a2b4b 80%)` }">
+            <div class="relative z-10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
-                <p class="eyebrow">Ficha seleccionada</p>
-                <h2>{{ selectedUser.fullName }}</h2>
-                <p>{{ selectedUser.role }} | {{ selectedUser.email }}</p>
+                <p class="text-[10px] sm:text-xs font-black uppercase tracking-widest text-white/70 mb-1">Ficha seleccionada</p>
+                <h2 class="text-2xl sm:text-3xl font-black mb-1">{{ selectedUser.fullName }}</h2>
+                <p class="text-sm font-medium text-white/90"><i class="fas fa-id-badge mr-1"></i> {{ selectedUser.role }} &bull; {{ selectedUser.email }}</p>
               </div>
-              <div class="hero-actions">
-                <button class="btn secondary" @click="resetEditForm">Restablecer</button>
+              <div class="flex gap-2 w-full sm:w-auto">
+                <button class="flex-1 sm:flex-none px-4 py-2 bg-white/20 hover:bg-white/30 rounded-xl text-sm font-bold backdrop-blur-md transition" @click="resetEditForm">
+                  <i class="fas fa-undo"></i>
+                </button>
                 <button
-                  class="btn"
-                  :class="selectedUser.status === 'Inactivo' ? 'primary' : 'danger'"
+                  class="flex-[2] sm:flex-none px-4 py-2 rounded-xl text-sm font-bold shadow-md transition"
+                  :class="selectedUser.status === 'Inactivo' ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-rose-500 hover:bg-rose-600'"
                   :disabled="isChangingStatus"
                   @click="disableSelectedUser"
                 >
-                  {{
-                    isChangingStatus
-                      ? selectedUser.status === 'Inactivo'
-                        ? 'Habilitando...'
-                        : 'Deshabilitando...'
-                      : selectedUser.status === 'Inactivo'
-                        ? 'Habilitar'
-                        : 'Deshabilitar'
-                  }}
+                  <i class="fas" :class="selectedUser.status === 'Inactivo' ? 'fa-check' : 'fa-ban'"></i> 
+                  {{ isChangingStatus ? 'Procesando...' : (selectedUser.status === 'Inactivo' ? 'Habilitar' : 'Deshabilitar') }}
                 </button>
               </div>
             </div>
-            <div class="hero-metrics">
-              <article><span>Rol backend</span><strong>{{ selectedUser.roleSlug }}</strong></article>
-              <article><span>Estado</span><strong>{{ selectedUser.status }}</strong></article>
-              <article><span>Clave</span><strong>{{ selectedUser.code }}</strong></article>
-              <article><span>Actividad</span><strong>{{ selectedUser.salesToday }}</strong></article>
+            
+            <div class="relative z-10 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-6 sm:mt-8">
+              <div class="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/10">
+                <span class="block text-[10px] uppercase font-bold text-white/60 mb-1">Rol backend</span>
+                <strong class="text-sm sm:text-base">{{ selectedUser.roleSlug }}</strong>
+              </div>
+              <div class="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/10">
+                <span class="block text-[10px] uppercase font-bold text-white/60 mb-1">Estado</span>
+                <strong class="text-sm sm:text-base flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full" :class="selectedUser.status === 'Activo' ? 'bg-emerald-400' : 'bg-rose-400'"></span> {{ selectedUser.status }}
+                </strong>
+              </div>
+              <div class="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/10">
+                <span class="block text-[10px] uppercase font-bold text-white/60 mb-1">Clave</span>
+                <strong class="text-sm sm:text-base">{{ selectedUser.code }}</strong>
+              </div>
+              <div class="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/10">
+                <span class="block text-[10px] uppercase font-bold text-white/60 mb-1">Actividad Hoy</span>
+                <strong class="text-sm sm:text-base">{{ selectedUser.salesToday }}</strong>
+              </div>
             </div>
           </article>
 
-          <div class="detail-grid">
-            <article class="panel">
-              <h3>Resumen operativo</h3>
-              <dl>
-                <div><dt>Nombre</dt><dd>{{ selectedUser.fullName }}</dd></div>
-                <div><dt>Correo</dt><dd>{{ selectedUser.email }}</dd></div>
-                <div><dt>Clave</dt><dd>{{ selectedUser.code }}</dd></div>
-                <div><dt>Ultimo acceso</dt><dd>{{ selectedUser.lastAccess }}</dd></div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+            
+            <div class="bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-gray-200">
+              <h3 class="text-lg font-bold text-gray-800 mb-4 border-b border-gray-100 pb-2"><i class="fas fa-info-circle text-blue-500 mr-2"></i> Resumen operativo</h3>
+              <dl class="space-y-3">
+                <div class="flex flex-col"><dt class="text-xs font-bold text-gray-400 uppercase tracking-wider">Nombre completo</dt><dd class="text-sm font-semibold text-gray-900 mt-0.5">{{ selectedUser.fullName }}</dd></div>
+                <div class="flex flex-col"><dt class="text-xs font-bold text-gray-400 uppercase tracking-wider">Correo registrado</dt><dd class="text-sm font-semibold text-gray-900 mt-0.5">{{ selectedUser.email }}</dd></div>
+                <div class="flex flex-col"><dt class="text-xs font-bold text-gray-400 uppercase tracking-wider">Clave de acceso</dt><dd class="text-sm font-semibold text-gray-900 mt-0.5">{{ selectedUser.code }}</dd></div>
+                <div class="flex flex-col"><dt class="text-xs font-bold text-gray-400 uppercase tracking-wider">Último acceso al sistema</dt><dd class="text-sm font-semibold text-gray-900 mt-0.5">{{ selectedUser.lastAccess }}</dd></div>
               </dl>
-            </article>
+            </div>
 
-            <article class="panel">
-              <h3>Editar usuario</h3>
-              <form class="form-grid compact-form" @submit.prevent="submitEdit">
-                <label><span>Nombre</span><input v-model="editForm.name" type="text" required /></label>
-                <label><span>Apellido</span><input v-model="editForm.last_name" type="text" required /></label>
-                <label><span>Email</span><input v-model="editForm.email" type="email" required /></label>
-                <label><span>Rol</span><select v-model.number="editForm.role_id"><option :value="1">Administrador</option><option :value="2">Empleado</option></select></label>
-                <label class="full"><span>Nueva contraseña</span><input v-model="editForm.password" type="password" minlength="8" placeholder="Opcional, minimo 8 caracteres" /></label>
-                <div class="modal-actions full">
-                  <button type="button" class="btn ghost" @click="resetEditForm">Cancelar cambios</button>
-                  <button type="submit" class="btn secondary" :disabled="isSavingEdit">{{ isSavingEdit ? 'Guardando...' : 'Guardar cambios' }}</button>
+            <div class="bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-gray-200">
+              <h3 class="text-lg font-bold text-gray-800 mb-4 border-b border-gray-100 pb-2"><i class="fas fa-user-edit text-blue-500 mr-2"></i> Editar usuario</h3>
+              <form class="space-y-3" @submit.prevent="submitEdit">
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="space-y-1"><label class="text-xs font-bold text-gray-500">Nombre</label><input v-model="editForm.name" type="text" required class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"/></div>
+                    <div class="space-y-1"><label class="text-xs font-bold text-gray-500">Apellido</label><input v-model="editForm.last_name" type="text" required class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"/></div>
                 </div>
+                <div class="space-y-1"><label class="text-xs font-bold text-gray-500">Email</label><input v-model="editForm.email" type="email" required class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"/></div>
+                <div class="space-y-1"><label class="text-xs font-bold text-gray-500">Rol</label><select v-model="editForm.role" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"><option value="admin">Administrador</option><option value="vendedor">Empleado</option></select></div>
+                <div class="space-y-1"><label class="text-xs font-bold text-gray-500">Nueva contraseña</label><input v-model="editForm.password" type="password" minlength="8" placeholder="Opcional..." class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"/></div>
+                <button type="submit" :disabled="isSavingEdit" class="w-full mt-2 bg-[#0B369E] hover:bg-blue-800 text-white py-2.5 rounded-lg font-bold text-sm transition-colors disabled:opacity-50 shadow-md">
+                  {{ isSavingEdit ? 'Guardando...' : 'Guardar cambios' }}
+                </button>
               </form>
-            </article>
+            </div>
 
-            <article class="panel panel-wide">
-              <h3>Permisos esperados</h3>
-              <div class="permission-grid">
-                <section v-for="group in selectedUser.permissions" :key="group.title" class="permission-group">
-                  <h4>{{ group.title }}</h4>
-                  <div v-for="permission in group.items" :key="permission.name" class="permission-item">
-                    <span>{{ permission.name }}</span>
-                    <b :class="{ denied: !permission.allowed }">{{ permission.allowed ? 'Permitido' : 'Restringido' }}</b>
+            <div class="md:col-span-2 bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-gray-200">
+              <h3 class="text-lg font-bold text-gray-800 mb-4 border-b border-gray-100 pb-2"><i class="fas fa-key text-blue-500 mr-2"></i> Matriz de Permisos (Calculados)</h3>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <section v-for="group in selectedUser.permissions" :key="group.title" class="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                  <h4 class="font-bold text-gray-800 text-sm mb-3">{{ group.title }}</h4>
+                  <div v-for="permission in group.items" :key="permission.name" class="flex justify-between items-center mb-2 last:mb-0">
+                    <span class="text-xs font-medium text-gray-600">{{ permission.name }}</span>
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold" :class="permission.allowed ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'">
+                      {{ permission.allowed ? 'Permitido' : 'Restringido' }}
+                    </span>
                   </div>
                 </section>
               </div>
-            </article>
+            </div>
+
           </div>
         </div>
 
-        <div v-else class="empty-state">
-          <p class="eyebrow">Sin seleccion</p>
-          <h2>Elige una tarjeta</h2>
-          <p>La ficha del usuario aparecera aqui, del lado derecho.</p>
+        <div v-else class="h-[300px] lg:h-full flex flex-col items-center justify-center text-center p-8 bg-white/60 rounded-[28px] border-2 border-dashed border-gray-200">
+          <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+            <i class="fas fa-hand-pointer text-3xl text-gray-400"></i>
+          </div>
+          <h2 class="text-xl font-bold text-gray-800 mb-2">Selecciona un usuario</h2>
+          <p class="text-gray-500 text-sm max-w-xs">Haz clic en una de las tarjetas de la izquierda para ver y editar los detalles del empleado.</p>
         </div>
+
       </section>
-    </section>
+    </div>
 
-    <div v-if="isCreateModalOpen" class="modal-overlay" @click.self="closeCreateModal">
-      <div class="modal-card">
-        <div class="modal-head">
+    <div v-if="isCreateModalOpen" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm" @click.self="closeCreateModal">
+      <div class="bg-white rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+        
+        <div class="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
           <div>
-            <p class="eyebrow">Alta de staff</p>
-            <h3>Nuevo usuario</h3>
+            <p class="text-[10px] font-black uppercase tracking-widest text-blue-600 mb-1">Alta de staff</p>
+            <h3 class="text-xl font-bold text-gray-900">Registrar nuevo usuario</h3>
           </div>
-          <button class="close-btn" @click="closeCreateModal">x</button>
+          <button class="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 text-gray-700 flex items-center justify-center transition-colors" @click="closeCreateModal"><i class="fas fa-times"></i></button>
         </div>
-        <form class="form-grid" @submit.prevent="submitCreate">
-          <label><span>Nombre</span><input v-model="createForm.name" type="text" required /></label>
-          <label><span>Apellido</span><input v-model="createForm.last_name" type="text" required /></label>
-          <label><span>Email</span><input v-model="createForm.email" type="email" required /></label>
-          <label><span>Clave de usuario</span><input v-model="createForm.user_id" type="text" required /></label>
-          <label><span>Contraseña</span><input v-model="createForm.password" type="password" minlength="8" required /></label>
-          <label><span>Rol</span><select v-model.number="createForm.role_id"><option :value="1">Administrador</option><option :value="2">Empleado</option></select></label>
-          <div class="modal-actions full">
-            <button type="button" class="btn ghost" @click="closeCreateModal">Cancelar</button>
-            <button type="submit" class="btn secondary" :disabled="isSavingCreate">{{ isSavingCreate ? 'Guardando...' : 'Crear usuario' }}</button>
+
+        <form class="p-6" @submit.prevent="submitCreate">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div class="space-y-1.5"><label class="text-xs font-bold text-gray-600 uppercase tracking-wider">Nombre</label><input v-model="createForm.name" type="text" required class="w-full px-4 py-2.5 bg-gray-50 focus:bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"/></div>
+            <div class="space-y-1.5"><label class="text-xs font-bold text-gray-600 uppercase tracking-wider">Apellido</label><input v-model="createForm.last_name" type="text" required class="w-full px-4 py-2.5 bg-gray-50 focus:bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"/></div>
+            <div class="space-y-1.5"><label class="text-xs font-bold text-gray-600 uppercase tracking-wider">Email</label><input v-model="createForm.email" type="email" required class="w-full px-4 py-2.5 bg-gray-50 focus:bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"/></div>
+            <div class="space-y-1.5"><label class="text-xs font-bold text-gray-600 uppercase tracking-wider">Clave Acceso</label><input v-model="createForm.user_id" type="text" required class="w-full px-4 py-2.5 bg-gray-50 focus:bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"/></div>
+            <div class="space-y-1.5"><label class="text-xs font-bold text-gray-600 uppercase tracking-wider">Contraseña</label><input v-model="createForm.password" type="password" minlength="8" required class="w-full px-4 py-2.5 bg-gray-50 focus:bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"/></div>
+            <div class="space-y-1.5">
+              <label class="text-xs font-bold text-gray-600 uppercase tracking-wider">Rol</label>
+              <select v-model="createForm.role_id" required class="w-full px-4 py-2.5 bg-gray-50 focus:bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                <option value="" disabled>Selecciona un rol</option>
+                <option :value="1">Administrador</option>
+                <option :value="2">Empleado</option>
+              </select>
+            </div>          
+          </div>
+          
+          <div class="mt-8 flex gap-3 pt-6 border-t border-gray-100">
+            <button type="button" class="flex-1 py-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold transition-colors" @click="closeCreateModal">Cancelar</button>
+            <button type="submit" class="flex-[2] py-3 rounded-xl bg-[#0B369E] hover:bg-blue-800 text-white font-bold shadow-md transition-colors disabled:opacity-50" :disabled="isSavingCreate">{{ isSavingCreate ? 'Guardando...' : 'Crear usuario' }}</button>
           </div>
         </form>
       </div>
@@ -546,75 +627,9 @@ function getErrorMessage(error: unknown, fallback: string) {
 </template>
 
 <style scoped>
-.users-page { height: calc(100vh - 80px); padding: 24px; overflow: hidden; background: linear-gradient(135deg, #f5efe4, #eef7ff 50%, #edf8f2); }
-.staff-studio { max-width: 1480px; height: 100%; margin: 0 auto; display: grid; grid-template-columns: minmax(320px, .9fr) minmax(420px, 1.1fr); gap: 24px; }
-.studio-sidebar, .hero, .panel, .empty-state, .modal-card { border-radius: 28px; background: rgba(255,255,255,.86); box-shadow: 0 20px 45px rgba(15,23,42,.08); }
-.studio-sidebar, .studio-detail { min-height: 0; }
-.studio-sidebar { padding: 24px; display: flex; flex-direction: column; overflow: hidden; }
-.studio-detail { overflow: hidden; }
-.sidebar-head, .hero-head, .modal-head, .modal-actions { display: flex; justify-content: space-between; gap: 14px; }
-.eyebrow { margin: 0 0 6px; font-size: .78rem; font-weight: 800; text-transform: uppercase; letter-spacing: .12em; color: #b45309; }
-h1, h2, h3, h4, p { margin-top: 0; }
-h1, h2, h3, h4, strong, b, dt, dd { color: #172033; }
-.lead, .hero p, .modal-head p, .empty-state p, .staff-card p, .staff-card small, li { color: #55657d; }
-.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 18px 0; }
-.stats-grid article { padding: 14px; border-radius: 20px; background: linear-gradient(135deg, #fff7ed, #f8fafc); }
-.stats-grid span { display: block; font-size: .78rem; text-transform: uppercase; color: #7c4a12; }
-.stats-grid strong { display: block; margin-top: 6px; font-size: 1.8rem; }
-.feedback { padding: 12px 14px; border-radius: 18px; margin: 0 0 12px; }
-.feedback.ok { background: #dcfce7; color: #166534; }
-.feedback.error { background: #fee2e2; color: #991b1b; }
-.search-input, .form-grid input, .form-grid select { width: 100%; box-sizing: border-box; border: 1px solid rgba(148,163,184,.4); border-radius: 16px; padding: 13px 15px; font-size: .95rem; outline: none; }
-.search-input { margin: 8px 0 14px; }
-.filter-row, .card-tags, .card-meta, .hero-actions { display: flex; flex-wrap: wrap; gap: 10px; }
-.pill, .btn, .card-tags span, .permission-item b, .close-btn { border: none; border-radius: 999px; cursor: pointer; font-weight: 800; }
-.pill { padding: 9px 14px; background: #fff; color: #30435e; }
-.pill.active { background: #172033; color: #fff; }
-.btn { padding: 11px 16px; }
-.btn.primary { background: linear-gradient(135deg, #0f766e, #155e75); color: #fff; }
-.btn.secondary { background: #1d4ed8; color: #fff; }
-.btn.danger { background: #dc2626; color: #fff; }
-.btn.ghost { background: #e2e8f0; color: #334155; }
-.btn:disabled { opacity: .55; cursor: not-allowed; }
-.staff-list { display: flex; flex-direction: column; gap: 14px; flex: 1; min-height: 0; overflow: auto; padding-right: 4px; }
-.staff-card { width: 100%; text-align: left; padding: 18px; border: 1px solid rgba(255,255,255,.85); border-left: 6px solid var(--accent); border-radius: 24px; background: rgba(255,255,255,.96); box-shadow: 0 16px 30px rgba(15,23,42,.08); cursor: pointer; }
-.staff-card.selected { box-shadow: 0 20px 38px rgba(15,23,42,.12); }
-.card-top { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; }
-.avatar { width: 46px; height: 46px; display: inline-flex; align-items: center; justify-content: center; border-radius: 16px; background: #172033; color: #fff; font-weight: 900; }
-.dot { width: 12px; height: 12px; border-radius: 999px; background: #22c55e; box-shadow: 0 0 0 6px rgba(34,197,94,.12); }
-.dot.inactive { background: #ef4444; box-shadow: 0 0 0 6px rgba(239,68,68,.12); }
-.card-tags span { padding: 6px 10px; background: #f8fafc; color: #475569; }
-.card-meta { justify-content: space-between; margin-top: 12px; }
-.panel-message { margin: 0; padding: 24px; border-radius: 22px; background: rgba(255,255,255,.7); text-align: center; }
-.detail-stack { display: flex; flex-direction: column; gap: 18px; height: 100%; min-height: 0; overflow: auto; padding-right: 4px; }
-.hero { padding: 28px; background: linear-gradient(145deg, var(--hero), #172033 72%); color: #fff; }
-.hero h2, .hero strong, .hero .eyebrow { color: #fff; }
-.hero p { color: rgba(255,255,255,.82); }
-.hero-metrics, .detail-grid, .permission-grid, .form-grid { display: grid; gap: 16px; }
-.hero-metrics { grid-template-columns: repeat(4, 1fr); margin-top: 18px; }
-.hero-metrics article { padding: 14px; border-radius: 20px; background: rgba(255,255,255,.12); }
-.hero-metrics span { display: block; font-size: .75rem; text-transform: uppercase; letter-spacing: .08em; color: rgba(255,255,255,.7); }
-.detail-grid { grid-template-columns: repeat(2, 1fr); }
-.panel { padding: 22px; }
-.panel-wide { grid-column: 1 / -1; }
-dl { display: grid; gap: 14px; margin: 0; }
-dl div { padding-bottom: 10px; border-bottom: 1px solid rgba(148,163,184,.24); }
-dt { margin-bottom: 4px; color: #64748b; font-size: .84rem; }
-dd { margin: 0; font-weight: 700; }
-.permission-grid { grid-template-columns: repeat(3, 1fr); }
-.permission-group { padding: 16px; border-radius: 20px; background: #f8fafc; }
-.permission-item { display: flex; justify-content: space-between; gap: 10px; margin-top: 10px; }
-.permission-item b { padding: 5px 9px; background: #dcfce7; color: #166534; font-size: .74rem; }
-.permission-item b.denied { background: #fee2e2; color: #991b1b; }
-.empty-state { min-height: 420px; display: flex; align-items: center; justify-content: center; flex-direction: column; padding: 28px; text-align: center; }
-.modal-overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(15,23,42,.42); backdrop-filter: blur(8px); z-index: 60; }
-.modal-card { width: min(720px, 100%); padding: 24px; }
-.close-btn { width: 38px; height: 38px; background: #e2e8f0; color: #172033; }
-.form-grid { grid-template-columns: repeat(2, 1fr); }
-.form-grid label { display: flex; flex-direction: column; gap: 8px; color: #334155; font-weight: 700; }
-.form-grid .full { grid-column: 1 / -1; }
-.compact-form { margin-top: 12px; }
-@media (max-width: 1180px) { .staff-studio, .detail-grid, .permission-grid, .hero-metrics { grid-template-columns: 1fr; } .stats-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 1180px) { .users-page { height: auto; overflow: visible; } .staff-studio { height: auto; } .studio-sidebar, .studio-detail, .staff-list, .detail-stack { overflow: visible; } }
-@media (max-width: 760px) { .users-page { padding: 16px; } .sidebar-head, .hero-head, .modal-head, .modal-actions { flex-direction: column; } .stats-grid, .form-grid { grid-template-columns: 1fr; } .hero-actions .btn, .btn.primary { width: 100%; } }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+.scrollbar-thin::-webkit-scrollbar { width: 6px; }
+.scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background-color: rgba(156, 163, 175, 0.3); border-radius: 20px; }
 </style>

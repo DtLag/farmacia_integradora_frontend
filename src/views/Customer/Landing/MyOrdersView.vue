@@ -45,9 +45,9 @@ onMounted(() => {
 
   echo.channel('public-orders')
     .listen('.OrderStatusChanged', (e: any) => {
-        console.log('🔄 Estado de tu pedido actualizado:', e.orderData);
+        console.log('Estado de tu pedido actualizado:', e.orderData);
         
-        const orderToUpdate = orders.value.find(o => o.id === e.orderData.id);
+        const orderToUpdate = orders.value.find(o => o.id === e.order.id);
         
         if (orderToUpdate) {  
           orderToUpdate.state = e.orderData.state;
@@ -92,9 +92,10 @@ function getStatusClass(state: string) {
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('es-MX', {
     day: 'numeric',
-    month: 'long',
+    month: 'short',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
+    hour12: true
   })
 }
 
@@ -109,6 +110,9 @@ async function cancelOrder(orderId: number) {
         const { error } = await useApi(`/pickup/${orderId}/cancel`).post().json()    
         
         if(error.value) throw new Error('No se pudo cancelar el pedido')
+        
+        // Refrescar lista
+        fetchOrders(activeTab.value)
     } catch (e) {
         console.error("Error al cancelar:", e)
         alert("Hubo un problema al cancelar el pedido. Intenta de nuevo.")
@@ -119,104 +123,110 @@ async function cancelOrder(orderId: number) {
 </script>
 
 <template>
-  <div class="flex flex-col min-h-screen bg-gray-50">
+  <div class="flex flex-col min-h-screen bg-[#EDF7FE]">
     <ClientNavbar />
 
-    <main class="flex-grow max-w-5xl mx-auto w-full p-4 md:p-10">
-      <header class="mb-10">
-        <h2 class="text-3xl font-extrabold text-[#1a2b4b]">Mis Pedidos Pick-Up</h2>
-        <p class="text-gray-500 mt-2">Gestiona tus reservaciones y consulta el estado de tus medicamentos.</p>
+    <main class="flex-grow max-w-5xl mx-auto w-full p-4 sm:p-6 md:p-10">
+      <header class="mb-6 sm:mb-10 text-center sm:text-left">
+        <h2 class="text-2xl sm:text-3xl font-extrabold text-[#1a2b4b]">Mis Pedidos Pick-Up</h2>
+        <p class="text-sm sm:text-base text-gray-500 mt-2">Gestiona tus reservaciones y consulta el estado de tus compras.</p>
       </header>
 
-      <div class="flex flex-wrap gap-2 mb-8 bg-white p-1.5 rounded-2xl border shadow-sm">
-        <button 
-          v-for="tab in tabs" 
-          :key="tab.id"
-          @click="fetchOrders(tab.id)"
-          :class="activeTab === tab.id ? 'bg-[#0B369E] text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'"
-          class="flex-1 min-w-[140px] py-3 px-4 rounded-xl font-bold transition-all duration-200 text-sm flex items-center justify-center gap-2"
-        >
-          <i :class="tab.icon"></i>
-          {{ tab.label }}
-        </button>
+      <div class="mb-6 sm:mb-8 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
+        <div class="flex gap-2 sm:gap-3 bg-white p-1.5 rounded-2xl sm:rounded-full shadow-sm min-w-max border border-blue-50">
+          <button 
+            v-for="tab in tabs" 
+            :key="tab.id"
+            @click="fetchOrders(tab.id)"
+            :class="activeTab === tab.id ? 'bg-[#0B369E] text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'"
+            class="py-2.5 sm:py-3 px-4 sm:px-6 rounded-xl sm:rounded-full font-bold transition-all duration-200 text-xs sm:text-sm flex items-center gap-2 whitespace-nowrap"
+          >
+            <i :class="tab.icon"></i>
+            {{ tab.label }}
+          </button>
+        </div>
       </div>
 
-      <div v-if="loading" class="flex flex-col items-center py-20">
-        <div class="w-12 h-12 border-4 border-blue-200 border-t-blue-700 rounded-full animate-spin"></div>
-        <p class="mt-4 text-gray-500 font-medium">Actualizando tus pedidos...</p>
+      <div v-if="loading" class="flex flex-col items-center py-20 bg-white rounded-3xl shadow-sm border border-blue-50">
+        <div class="w-10 h-10 sm:w-12 sm:h-12 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin"></div>
+        <p class="mt-4 text-sm sm:text-base text-gray-500 font-medium">Actualizando tus pedidos...</p>
       </div>
 
-      <div v-else-if="orders.length > 0" class="space-y-6">
+      <div v-else-if="orders.length > 0" class="space-y-5 sm:space-y-6">
         <div 
           v-for="order in orders" 
           :key="order.id" 
-          class="bg-white rounded-3xl border shadow-sm overflow-hidden hover:shadow-md transition-shadow"
+          class="bg-white rounded-2xl sm:rounded-3xl border border-blue-50 shadow-sm overflow-hidden hover:shadow-md transition-shadow"
         >
-          <div class="p-6 border-b bg-gray-50/50 flex flex-wrap justify-between items-center gap-4">
-            <div class="flex items-center gap-4">
-              <div class="bg-blue-100 text-blue-800 w-12 h-12 rounded-2xl flex items-center justify-center font-bold">
+          <div class="p-4 sm:p-6 border-b border-gray-100 bg-gray-50/30 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div class="flex items-center gap-3 sm:gap-4 w-full sm:w-auto">
+              <div class="bg-blue-100 text-blue-800 w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center font-black text-sm sm:text-base shrink-0">
                 #{{ order.id }}
               </div>
-              <div>
-                <p class="text-xs text-gray-400 uppercase font-bold tracking-wider">Fecha de recolección</p>
-                <p class="font-bold text-gray-800">{{ formatDate(order.scheduled_time) }}</p>
+              <div class="min-w-0">
+                <p class="text-[10px] sm:text-xs text-gray-400 uppercase font-bold tracking-wider">Fecha de recolección</p>
+                <p class="font-bold text-gray-800 text-sm sm:text-base truncate">{{ formatDate(order.scheduled_time) }}</p>
               </div>
             </div>
             
-            <div :class="getStatusClass(order.state)" class="px-4 py-1.5 rounded-full text-xs font-black uppercase border tracking-widest">
+            <div :class="getStatusClass(order.state)" class="w-full sm:w-auto text-center px-3 py-1.5 sm:px-4 rounded-lg sm:rounded-full text-[10px] sm:text-xs font-black uppercase border tracking-widest">
               {{ getStatusLabel(order.state) }}
             </div>
           </div>
 
-          <div class="p-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div class="p-4 sm:p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
               <div>
-                <h4 class="text-sm font-bold text-gray-400 mb-4 uppercase tracking-tighter">Productos solicitados</h4>
-                <ul class="space-y-3">
-                  <li v-for="detail in order.order_details" :key="detail.id" class="flex justify-between items-center">
-                    <div class="flex items-center gap-3">
-                      <span class="bg-gray-100 text-gray-600 text-[10px] font-bold px-2 py-1 rounded">x{{ detail.amount }}</span>
-                      <span class="text-gray-700 font-medium">{{ detail.product.name }}</span>
+                <h4 class="text-xs sm:text-sm font-bold text-gray-400 mb-3 sm:mb-4 uppercase tracking-tighter">Productos solicitados</h4>
+                <ul class="space-y-2 sm:space-y-3">
+                  <li v-for="detail in order.order_details" :key="detail.id" class="flex justify-between items-start sm:items-center gap-3">
+                    <div class="flex items-start sm:items-center gap-2 sm:gap-3 min-w-0">
+                      <span class="bg-blue-50 text-blue-700 border border-blue-100 text-[10px] font-bold px-2 py-0.5 sm:py-1 rounded shrink-0">x{{ detail.amount }}</span>
+                      <span class="text-gray-700 font-medium text-xs sm:text-sm truncate" :title="detail.product.name">{{ detail.product.name }}</span>
                     </div>
-                    <span class="text-gray-400 text-sm">${{ detail.unit_price }} c/u</span>
+                    <span class="text-gray-400 text-xs sm:text-sm shrink-0 whitespace-nowrap">${{ detail.unit_price }} c/u</span>
                   </li>
                 </ul>
               </div>
 
-              <div class="bg-blue-50/50 rounded-2xl p-5 border border-blue-100">
+              <div class="bg-blue-50/50 rounded-xl sm:rounded-2xl p-4 sm:p-5 border border-blue-100 h-fit">
                 <div class="flex justify-between mb-2">
-                  <span class="text-gray-500 text-sm">Método de pago:</span>
-                  <span class="font-bold text-gray-700">{{ order.payment?.method_name || 'No especificado' }}</span>
+                  <span class="text-gray-500 text-xs sm:text-sm">Método de pago:</span>
+                  <span class="font-bold text-gray-700 text-xs sm:text-sm">{{ order.payment?.method_name || 'No especificado' }}</span>
                 </div>
-                <div class="flex justify-between items-center mt-4 pt-4 border-t border-blue-200">
-                  <span class="text-blue-900 font-bold">Total a pagar:</span>
-                  <span class="text-2xl font-black text-[#0B369E]">${{ order.order_details.reduce((acc, d) => acc + (d.unit_price * d.amount), 0) }}</span>
+                <div class="flex justify-between items-center mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-blue-200">
+                  <span class="text-blue-900 font-bold text-sm sm:text-base">Total a pagar:</span>
+                  <span class="text-xl sm:text-2xl font-black text-[#0B369E]">
+                    ${{ order.order_details.reduce((acc, d) => acc + (d.unit_price * d.amount), 0) }}
+                  </span>
                 </div>
               </div>
             </div>
           </div>
 
-          <div v-if="order.state === 'pending'" class="px-6 py-4 bg-gray-50 border-t flex justify-end">
+          <div v-if="order.state === 'pending'" class="px-4 sm:px-6 py-3 sm:py-4 bg-gray-50/80 border-t border-gray-100 flex justify-center sm:justify-end">
             <button 
-            @click="cancelOrder(order.id)"
-            :disabled="isCancelling === order.id"
-            class="text-red-500 hover:text-red-800 text-sm font-bold transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              @click="cancelOrder(order.id)"
+              :disabled="isCancelling === order.id"
+              class="w-full sm:w-auto justify-center text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-100 px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-            <i v-if="isCancelling === order.id" class="fas fa-spinner animate-spin"></i>
-            <i v-else class="fas fa-ban"></i>
-            {{ isCancelling === order.id ? 'Cancelando...' : 'Cancelar pedido' }}
+              <i v-if="isCancelling === order.id" class="fas fa-spinner animate-spin"></i>
+              <i v-else class="fas fa-ban"></i>
+              {{ isCancelling === order.id ? 'Cancelando...' : 'Cancelar pedido' }}
             </button>
-            </div>
+          </div>
         </div>
       </div>
 
-      <div v-else class="text-center py-24 bg-white rounded-3xl border border-dashed border-gray-300">
-        <div class="bg-gray-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
-          <i class="fas fa-folder-open text-4xl text-gray-300"></i>
+      <div v-else class="text-center py-16 sm:py-24 bg-white rounded-3xl border border-dashed border-gray-300 shadow-sm mx-auto max-w-2xl px-4">
+        <div class="bg-blue-50 w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center mx-auto mb-5 sm:mb-6">
+          <i class="fas fa-folder-open text-3xl sm:text-4xl text-blue-300"></i>
         </div>
-        <h3 class="text-2xl font-bold text-gray-800 mb-2">Sin pedidos en esta sección</h3>
-        <p class="text-gray-500 mb-8 max-w-xs mx-auto">Actualmente no tienes registros bajo el estado de "{{ tabs.find(t => t.id === activeTab)?.label }}".</p>
-        <RouterLink to="/" class="bg-[#0B369E] text-white px-10 py-3 rounded-xl font-bold hover:bg-blue-800 transition shadow-lg">
+        <h3 class="text-xl sm:text-2xl font-bold text-gray-800 mb-2">Sin pedidos en esta sección</h3>
+        <p class="text-sm sm:text-base text-gray-500 mb-6 sm:mb-8 max-w-sm mx-auto">
+          Actualmente no tienes registros bajo el estado de "{{ tabs.find(t => t.id === activeTab)?.label }}".
+        </p>
+        <RouterLink to="/customer/products" class="inline-block bg-[#0B369E] text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-800 transition shadow-md text-sm sm:text-base">
           Ir al catálogo
         </RouterLink>
       </div>
@@ -225,3 +235,12 @@ async function cancelOrder(orderId: number) {
     <ClientFooter />
   </div>
 </template>
+<style scoped>
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+</style>

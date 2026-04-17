@@ -1,7 +1,7 @@
 import { createFetch } from '@vueuse/core'
 
 export const usePublicApi = createFetch({
-  baseUrl: 'https://api.harold-dev.me/api',
+  baseUrl: import.meta.env.VITE_API_BASE_URL,
 
   options: {
     beforeFetch({ options }) {

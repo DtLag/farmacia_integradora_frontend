@@ -68,7 +68,7 @@ async function handleCheckout() {
   if (!authStore.token) {
     router.push({
       path: '/customer/login',
-      query: { redirect: '/checkout' }
+      query: { redirect: '/customer/cart' }
     })
     return
   }
@@ -123,16 +123,16 @@ function removeItem(productId: number) {
 </script>
 
 <template>
-  <div class="flex flex-col min-h-screen bg-gray-50 relative">
+  <div class="flex flex-col min-h-screen bg-[#EDF7FE] relative">
     <ClientNavbar />
 
-    <main class="flex-grow max-w-7xl mx-auto w-full p-4 md:p-10">
-      <h2 class="text-3xl font-bold text-[#1a2b4b] mb-8">Carrito de compras</h2>
+    <main class="flex-grow max-w-7xl mx-auto w-full p-4 sm:p-6 md:p-10">
+      <h2 class="text-2xl sm:text-3xl font-bold text-[#1a2b4b] mb-6 sm:mb-8">Carrito de compras</h2>
 
-      <div v-if="cartStore.items.length > 0" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div v-if="cartStore.items.length > 0" class="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
         
         <div class="lg:col-span-2 space-y-4">
-          <div class="bg-white rounded-2xl shadow-sm border p-6">
+          <div class="bg-white rounded-2xl shadow-md border border-blue-50 p-4 sm:p-6">
             <div class="divide-y divide-gray-100">
               <CartItemComponent 
                 v-for="item in cartStore.items" 
@@ -144,16 +144,16 @@ function removeItem(productId: number) {
             </div>
           </div>
           
-          <button @click="cartStore.clearCart()" class="text-red-500 text-sm font-medium hover:underline ml-2 flex items-center gap-2">
+          <button @click="cartStore.clearCart()" class="text-red-500 hover:text-red-700 text-sm font-medium ml-2 flex items-center gap-2 p-2 transition-colors">
              <i class="fas fa-trash-alt"></i> Vaciar carrito
           </button>
         </div>
 
         <div class="space-y-6">
-          <div class="bg-white rounded-2xl shadow-sm border p-6 sticky top-24">
-            <h3 class="text-xl font-bold text-gray-800 mb-6">Resumen del pedido</h3>
+          <div class="bg-white rounded-2xl shadow-md border border-blue-50 p-5 sm:p-6 sticky top-20 sm:top-24">
+            <h3 class="text-lg sm:text-xl font-bold text-gray-800 mb-5 sm:mb-6">Resumen del pedido</h3>
             
-            <div class="mb-6">
+            <div class="mb-5 sm:mb-6">
               <label class="block text-sm font-semibold text-gray-700 mb-2">
                 <i class="fas fa-clock mr-1 text-blue-600"></i> Hora de recolección (Hoy)
               </label>
@@ -163,24 +163,24 @@ function removeItem(productId: number) {
                 type="time" 
                 :min="currentTime"
                 :max="maxTime"
-                class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 transition-all"
+                class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 transition-all text-sm sm:text-base"
                 :class="{'border-red-500': pickupTime && !isValidTime}"
                 required
               />
 
-              <p class="text-[11px] text-gray-600 mt-2 font-medium">
-                Disponible hoy de: {{ currentTime12 }} a {{ maxTime12 }}
+              <p class="text-[11px] sm:text-xs text-gray-500 mt-2 font-medium">
+                Disponible hoy de: <span class="text-blue-600">{{ currentTime12 }}</span> a <span class="text-blue-600">{{ maxTime12 }}</span>
               </p>
             </div>
 
-            <div class="mb-6">
+            <div class="mb-5 sm:mb-6">
               <label class="block text-sm font-semibold text-gray-700 mb-2">
                 <i class="fas fa-credit-card mr-1 text-blue-600"></i> Método de pago
               </label>
               
               <select 
                 v-model="selectedPaymentMethod"
-                class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 transition-all"
+                class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 transition-all text-sm sm:text-base"
                 :class="{'border-red-500': !selectedPaymentMethod && isSubmitting}"
                 required
               >
@@ -190,68 +190,69 @@ function removeItem(productId: number) {
                 </option>
               </select>
               
-              <p v-if="!selectedPaymentMethod" class="text-[10px] text-gray-400 mt-1 italic">
+              <p v-if="!selectedPaymentMethod" class="text-[10px] sm:text-[11px] text-gray-400 mt-2 italic">
                 * El pago se realizará al recoger tu pedido en ventanilla.
               </p>
             </div>
 
-            <div class="space-y-3 mb-6">
-              <div class="flex justify-between text-gray-600">
+            <div class="space-y-3 mb-6 bg-blue-50/50 p-4 rounded-xl border border-blue-50">
+              <div class="flex justify-between text-sm sm:text-base text-gray-600">
                 <span>Productos ({{ cartStore.totalItems }})</span>
-                <span>${{ cartStore.totalPrice }}</span>
+                <span class="font-medium">${{ cartStore.totalPrice }}</span>
               </div>
-              <div class="flex justify-between text-gray-600">
+              <div class="flex justify-between text-sm sm:text-base text-gray-600">
                 <span>Servicio Pick-up</span>
-                <span class="text-green-600 font-medium">Sin costo</span>
+                <span class="text-green-600 font-bold">Sin costo</span>
               </div>
-              <div class="border-t pt-3 flex justify-between items-center text-xl font-bold text-gray-900">
+              <div class="border-t border-blue-100 pt-3 flex justify-between items-center text-lg sm:text-xl font-bold text-gray-900 mt-2">
                 <span>Total</span>
-                <span class="text-blue-600">${{ cartStore.totalPrice }}</span>
+                <span class="text-blue-700">${{ cartStore.totalPrice }}</span>
               </div>
             </div>
 
             <button 
               @click="handleCheckout"
               :disabled="!isValidTime || !selectedPaymentMethod || isSubmitting"
-              class="block w-full bg-[#0B369E] text-white text-center py-4 rounded-xl font-bold hover:bg-blue-800 transition shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+              class="block w-full bg-[#0B369E] text-white text-center py-3.5 sm:py-4 rounded-xl font-bold hover:bg-blue-800 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm sm:text-base"
             >
               <i v-if="isSubmitting" class="fas fa-spinner animate-spin"></i>
               {{ isSubmitting ? 'Procesando...' : 'Confirmar pedido' }}
             </button>
             
-            <p v-if="!isValidTime && pickupTime" class="text-xs text-center text-red-500 mt-3 font-medium">
+            <p v-if="!isValidTime && pickupTime" class="text-xs text-center text-red-500 mt-3 font-medium bg-red-50 p-2 rounded-lg">
               La hora debe ser posterior a la actual y antes de las 7:00 PM
             </p>
-            <p v-if="errorMessage" class="text-xs text-center text-red-500 mt-3 font-bold">
+            <p v-if="errorMessage" class="text-xs text-center text-red-500 mt-3 font-bold bg-red-50 p-2 rounded-lg">
               {{ errorMessage }}
             </p>
           </div>
         </div>
       </div>
 
-      <div v-else class="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-300">
-        <div class="bg-gray-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <i class="fas fa-shopping-basket text-3xl text-gray-300"></i>
+      <div v-else class="text-center py-16 sm:py-24 bg-white rounded-3xl border border-dashed border-gray-300 shadow-sm mx-auto max-w-2xl px-4">
+        <div class="bg-blue-50 w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center mx-auto mb-6">
+            <i class="fas fa-shopping-basket text-3xl sm:text-4xl text-blue-300"></i>
         </div>
-        <p class="text-xl text-gray-500 mb-6">Tu carrito está vacío</p>
-        <RouterLink to="/" class="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-700 transition">
-          Volver al catálogo
+        <p class="text-lg sm:text-xl font-medium text-gray-600 mb-2">Tu carrito está vacío</p>
+        <p class="text-sm text-gray-400 mb-8 max-w-sm mx-auto">Agrega productos de nuestro catálogo para continuar con tu pedido Pick Up.</p>
+        <RouterLink to="/customer/products" class="inline-block bg-[#0B369E] text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-800 transition shadow-md">
+          Ver Catálogo
         </RouterLink>
       </div>
     </main>
 
     <div v-if="showSuccessModal" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div class="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center">
-        <div class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
-          <i class="fas fa-check text-4xl"></i>
+      <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl text-center transform transition-all">
+        <div class="w-16 h-16 sm:w-20 sm:h-20 bg-green-50 text-green-500 rounded-full flex items-center justify-center mx-auto mb-5 sm:mb-6 border-4 border-green-100">
+          <i class="fas fa-check text-3xl sm:text-4xl"></i>
         </div>
-        <h3 class="text-2xl font-bold text-gray-900 mb-2">¡Pedido Confirmado!</h3>
-        <p class="text-gray-600 mb-6 leading-relaxed">
-          Tu reserva ha sido recibida. Te esperamos a las <span class="font-bold text-blue-600">{{ pickupTime12 }}</span> para la entrega en ventanilla.
+        <h3 class="text-xl sm:text-2xl font-bold text-gray-900 mb-2">¡Pedido Confirmado!</h3>
+        <p class="text-sm sm:text-base text-gray-600 mb-6 leading-relaxed">
+          Tu reserva ha sido recibida. Te esperamos a las <br> <span class="font-bold text-blue-700 text-lg">{{ pickupTime12 }}</span> <br> para la entrega en ventanilla.
         </p>
         <button 
           @click="router.push('/customer/my-orders')" 
-          class="w-full bg-[#0B369E] text-white py-3 rounded-xl font-bold hover:bg-blue-800 transition shadow-lg"
+          class="w-full bg-[#0B369E] text-white py-3 rounded-xl font-bold hover:bg-blue-800 transition shadow-md"
         >
           Ver mis pedidos
         </button>

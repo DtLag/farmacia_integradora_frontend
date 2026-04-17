@@ -13,239 +13,85 @@ const credenciales = ref<Credentials>({
   password: 'password',
 })
 
+const isLoading = ref(false)
+
 async function login() {
-  console.log('REVISANDO URL:', import.meta.env.VITE_API_BASE_URL)
+  isLoading.value = true
   try {
     const { data, error: fetchError } = await usePublicApi('login/staff')
       .post(credenciales.value)
       .json()
+      
     if (fetchError.value) {
       alert('Credenciales incorrectas.')
+      isLoading.value = false
+      return
     }
 
     authStore.logIn(data.value.token, data.value.user)
-
-    console.log('respuesta completa login:', data.value)
-    console.log('usuario login:', data.value.user)
-
     await router.push('/dashboard')
   } catch (error) {
     console.error('Error en el login:', error)
-    console.log('Error en el login:', error instanceof Error ? error.message : error)
+    alert('Ocurrió un error al intentar iniciar sesión.')
+  } finally {
+    isLoading.value = false
   }
 }
 </script>
 
 <template>
-  <div class="page">
-    <div class="login-card">
-      <div class="login-header">
-        <h1>Iniciar sesión</h1>
+  <div class="min-h-screen flex items-center justify-center bg-gray-50/50 p-4">
+    <div class="w-full max-w-md bg-white rounded-[24px] p-8 sm:p-10 shadow-[0_20px_50px_rgba(15,23,42,0.08)] border border-gray-100">
+      
+      <div class="text-center mb-8">
+        <div class="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl">
+          <i class="fas fa-clinic-medical"></i>
+        </div>
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900">Iniciar sesión</h1>
+        <p class="text-sm text-gray-500 mt-2">Ingresa tus credenciales de empleado</p>
       </div>
 
-      <form @submit.prevent="login">
-        <div class="input-group">
-          <label for="email">Correo electrónico</label>
-          <input
-            id="email"
-            type="email"
-            v-model="credenciales.email"
-            placeholder="Ingresa tu correo"
-          />
+      <form @submit.prevent="login" class="space-y-5">
+        <div class="space-y-1.5">
+          <label for="email" class="block text-sm font-bold text-gray-700">Correo electrónico</label>
+          <div class="relative">
+            <input
+              id="email"
+              type="email"
+              v-model="credenciales.email"
+              placeholder="admin@farmacia.com"
+              class="w-full px-4 py-3.5 pl-11 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-[#0B369E] focus:border-transparent outline-none transition-all text-sm sm:text-base"
+              required
+            />
+            <i class="fas fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+          </div>
         </div>
-        <div class="input-group">
-          <label for="password">Contraseña</label>
-          <input
-            id="password"
-            type="password"
-            v-model="credenciales.password"
-            placeholder="Ingresa tu contraseña"
-          />
+
+        <div class="space-y-1.5">
+          <label for="password" class="block text-sm font-bold text-gray-700">Contraseña</label>
+          <div class="relative">
+            <input
+              id="password"
+              type="password"
+              v-model="credenciales.password"
+              placeholder="••••••••"
+              class="w-full px-4 py-3.5 pl-11 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-[#0B369E] focus:border-transparent outline-none transition-all text-sm sm:text-base"
+              required
+            />
+            <i class="fas fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+          </div>
         </div>
-        <button type="submit">Iniciar Sesión</button>
+
+        <button 
+          type="submit"
+          :disabled="isLoading"
+          class="w-full bg-gradient-to-r from-[#0B369E] to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-600/30 transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed mt-2 flex items-center justify-center gap-2"
+        >
+          <i v-if="isLoading" class="fas fa-spinner animate-spin"></i>
+          {{ isLoading ? 'Verificando...' : 'Acceder al sistema' }}
+        </button>
       </form>
+      
     </div>
   </div>
 </template>
-
-<style scoped>
-.page {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
-}
-.login-container {
-  width: 400px;
-  margin: 50px auto;
-  padding: 30px;
-  background: #f9fbfd;
-  border: 1px solid #d0e4f7;
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-h2 {
-  text-align: center;
-  color: #1565c0;
-  margin-bottom: 20px;
-}
-
-label {
-  display: block;
-  font-weight: 600;
-  margin-bottom: 5px;
-  color: #2c3e50;
-}
-
-input {
-  width: 100%;
-  padding: 10px;
-  margin-bottom: 15px;
-  border: 1px solid #aacbea;
-  border-radius: 6px;
-}
-
-button {
-  width: 100%;
-  padding: 12px;
-  background-color: #1976d2;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-button:hover:not(:disabled) {
-  background-color: #155fa0;
-}
-
-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-p {
-  text-align: center;
-  margin-top: 15px;
-  color: #1565c0;
-}
-
-.login-card {
-  width: 100%;
-  max-width: 420px;
-  background: #ffffff;
-  border-radius: 18px;
-  padding: 32px;
-  box-shadow:
-    0 20px 50px rgba(15, 23, 42, 0.12),
-    0 8px 20px rgba(15, 23, 42, 0.08);
-  border: 1px solid #e5eef9;
-}
-
-.login-header {
-  margin-bottom: 28px;
-  text-align: center;
-}
-
-.login-header h1 {
-  margin: 0;
-  font-size: 28px;
-  font-weight: 700;
-  color: #0f172a;
-}
-
-.login-header p {
-  margin-top: 8px;
-  font-size: 14px;
-  color: #64748b;
-}
-
-.login-form {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.input-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-label {
-  font-size: 14px;
-  font-weight: 600;
-  color: #334155;
-}
-
-input {
-  width: 100%;
-  padding: 12px 14px;
-  border: 1px solid #cbd5e1;
-  border-radius: 12px;
-  font-size: 15px;
-  color: #0f172a;
-  background: #f8fbff;
-  outline: none;
-  transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease,
-    background 0.2s ease;
-  box-sizing: border-box;
-}
-
-input::placeholder {
-  color: #94a3b8;
-}
-
-input:focus {
-  border-color: #2563eb;
-  background: #ffffff;
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
-}
-
-button {
-  width: 100%;
-  padding: 13px 16px;
-  border: none;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-  color: #ffffff;
-  font-size: 15px;
-  font-weight: 700;
-  cursor: pointer;
-  transition:
-    transform 0.15s ease,
-    box-shadow 0.2s ease,
-    opacity 0.2s ease;
-  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.22);
-}
-
-button:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 14px 24px rgba(37, 99, 235, 0.28);
-}
-
-button:active:not(:disabled) {
-  transform: translateY(0);
-}
-
-button:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-  box-shadow: none;
-}
-
-.error-message {
-  margin: 0;
-  text-align: center;
-  font-size: 14px;
-  font-weight: 500;
-  color: #dc2626;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  padding: 10px 12px;
-  border-radius: 10px;
-}
-</style>

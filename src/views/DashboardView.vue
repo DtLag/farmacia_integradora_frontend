@@ -24,7 +24,6 @@ onMounted(() => {
       .listen('.LowStock', (e: any) => {
           console.warn('⚠️ ¡Alerta Global Recibida!', e.alertData)
           
-          // 1. Creamos la notificación
           const id = toastCounter++
           toasts.value.push({
             id,
@@ -51,27 +50,28 @@ function closeToast(id: number) {
 </script>
 
 <template>
-  <div class="relative min-h-screen">
+  <div class="relative min-h-screen bg-gray-50/50">
     <MainNavbar />
+    
     <router-view />
 
-    <div class="fixed bottom-6 right-6 z-50 flex flex-col gap-3 pointer-events-none">
+    <div class="fixed top-16 sm:top-auto sm:bottom-6 inset-x-0 mx-auto sm:inset-x-auto sm:right-6 z-[100] flex flex-col gap-3 pointer-events-none px-4 sm:px-0 w-full max-w-sm sm:max-w-md">
       <transition-group name="toast">
         <div 
           v-for="toast in toasts" 
           :key="toast.id"
-          class="bg-amber-100 border-l-4 border-amber-500 text-amber-900 p-4 rounded-r-lg shadow-xl flex items-start justify-between min-w-[320px] max-w-md pointer-events-auto"
+          class="bg-white border-l-4 border-amber-500 p-4 rounded-xl shadow-2xl flex items-start justify-between w-full pointer-events-auto mt-2 sm:mt-0 ring-1 ring-gray-200"
         >
           <div class="flex gap-3 items-start">
-            <div class="bg-amber-500 text-white rounded-full w-6 h-6 flex items-center justify-center shrink-0 mt-0.5">
-              <i class="fas fa-exclamation text-xs"></i>
+            <div class="bg-amber-100 text-amber-600 rounded-full w-8 h-8 flex items-center justify-center shrink-0 mt-0.5">
+              <i class="fas fa-exclamation-triangle text-sm"></i>
             </div>
             <div>
-              <h4 class="font-bold text-sm tracking-wide">Stock Bajo: {{ toast.product_name }}</h4>
-              <p class="text-xs mt-1 text-amber-800 leading-snug">{{ toast.message }}</p>
+              <h4 class="font-extrabold text-gray-800 text-sm tracking-wide">Stock Bajo: {{ toast.product_name }}</h4>
+              <p class="text-xs mt-1 text-gray-500 leading-snug">{{ toast.message }}</p>
             </div>
           </div>
-          <button @click="closeToast(toast.id)" class="text-amber-800 hover:text-amber-600 transition-colors ml-4 p-1">
+          <button @click="closeToast(toast.id)" class="text-gray-400 hover:text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-md p-1.5 transition-colors ml-4 shrink-0">
             <i class="fas fa-times"></i>
           </button>
         </div>
@@ -85,12 +85,18 @@ function closeToast(id: number) {
 .toast-leave-active {
   transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
-.toast-enter-from {
-  opacity: 0;
-  transform: translateX(100%);
+@media (max-width: 639px) {
+  .toast-enter-from,
+  .toast-leave-to {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
 }
-.toast-leave-to {
-  opacity: 0;
-  transform: translateX(100%);
+@media (min-width: 640px) {
+  .toast-enter-from,
+  .toast-leave-to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
 }
 </style>

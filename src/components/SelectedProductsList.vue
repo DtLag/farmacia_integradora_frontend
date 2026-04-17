@@ -12,10 +12,10 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div class="space-y-3">
+  <div class="space-y-2 sm:space-y-3">
     <div
       v-if="products.length === 0"
-      class="rounded-xl border border-dashed border-gray-300 px-4 py-8 text-center text-sm text-gray-500"
+      class="rounded-xl border-2 border-dashed border-gray-200 bg-gray-50/50 px-4 py-8 text-center text-sm text-gray-500 font-medium"
     >
       No hay productos seleccionados
     </div>

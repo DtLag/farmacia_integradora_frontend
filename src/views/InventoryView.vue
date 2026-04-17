@@ -5,18 +5,23 @@ import { VueDatePicker } from '@vuepic/vue-datepicker'
 import '@vuepic/vue-datepicker/dist/main.css'
 import { utils, writeFileXLSX } from 'xlsx'
 import { useApi } from '@/composables/useApiFetch'
-import { usePublicApi } from '@/composables/usePublicApi'
 import { useAuthStore } from '@/stores/auth'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8000/api/'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
-interface InventoryProduct { id:number; codigo:string; name:string; presentation:string|null; purchase_price:number|string; sale_price:number|string; location:string|null; stock:number; min_stock:number; max_stock:number|null; description:string|null; expiration_date:string|null; category_name:string|null; supplier_name:string|null }
-interface InventoryBatchItem { id:number; amount:number; unit_price:number|string; reception_date:string|null; expiration_date:string|null; registered_by:string|null; product:{ id:number|null; codigo:string|null; name:string|null; location:string|null; stock:number|null; category_name:string|null; supplier_name:string|null }; batch:{ id:number|null; identifier_batch:string|null; entry_date:string|null; supplier_name:string|null } }
+function apiUrl(path: string) {
+  return `${API_BASE_URL}/${path.replace(/^\/+/, '')}`
+}
+
+interface InventoryProduct { id:number; codigo:string; name:string; presentation:string|null; purchase_price:number|string; sale_price:number|string; location:string|null; stock:number; min_stock:number; max_stock:number|null; description:string|null; expiration_date:string|null; category_name:string|null; supplier_name:string|null; deleted_at?:string|null; status?:string; active?:boolean; is_active?:boolean; image_url?: string | null; image?: string | null }
+interface InventoryBatchItem { id:number; amount:number; unit_price:number|string; reception_date:string|null; expiration_date:string|null; registered_by:string|null; product:{ id:number|null; codigo:string|null; name:string|null; location:string|null; stock:number|null; category_name:string|null; supplier_name:string|null; deleted_at?:string|null; status?:string; active?:boolean; is_active?:boolean }; batch:{ id:number|null; identifier_batch:string|null; entry_date:string|null; supplier_name:string|null }; image_url?: string | null; image?: string | null }
 interface SelectOption { id:number; name:string }
 interface ProductForm { codigo:string; name:string; presentation:string; purchase_price:number; sale_price:number; location:string; min_stock:number; max_stock:number|null; description:string; supplier_id:number|null; category_id:number|null; image:File|null }
 interface BatchFormItem { product_id:number|null; amount:number; unit_price:number; expiration_date:string }
 interface BatchForm { identifier_batch:string; supplier_id:number|null; entry_date:string; notes:string; products:BatchFormItem[] }
 interface SupplierForm { name:string; contact:string; email:string; phone_number:string }
+interface ProductStatusDialogState { productId:number; productName:string; disable:boolean }
+interface ProductStatusTarget { id:number|null; name?:string|null; deleted_at?:string|null; status?:string; active?:boolean; is_active?:boolean }
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -41,9 +46,13 @@ const supplierError = ref('')
 const showProductModal = ref(false)
 const showBatchModal = ref(false)
 const showSupplierModal = ref(false)
+const showProductStatusModal = ref(false)
+const productStatusDialog = ref<ProductStatusDialogState | null>(null)
+const isChangingProductStatus = ref(false)
 const productForm = ref<ProductForm>(initialProduct())
 const batchForm = ref<BatchForm>(initialBatch())
 const supplierForm = ref<SupplierForm>(initialSupplier())
+const productStatusOverrides = ref<Record<number, boolean>>({})
 const isEditingProduct = computed(() => editingProductId.value !== null)
 
 const totalProducts = computed(() => productsInventory.value.length)
@@ -95,7 +104,7 @@ async function loadCategories() {
 }
 
 async function loadSuppliers() {
-  const { data, error } = await usePublicApi('/supply').get().json()
+  const { data, error } = await useApi('/supply').get().json()
   if (!error.value && Array.isArray(data.value)) suppliers.value = data.value as SelectOption[]
 }
 
@@ -106,6 +115,32 @@ function currency(v:number|string) { return new Intl.NumberFormat('es-MX', { sty
 function dateText(v:string|null|undefined) { if (!v) return 'Pendiente'; const d = new Date(v); return Number.isNaN(d.getTime()) ? String(v) : new Intl.DateTimeFormat('es-MX').format(d) }
 function expirationStatus(v:string|null) { if (!v) return { label:'Sin fecha', cls:'neutral' }; const today = new Date(); const d = new Date(v); const next = new Date(); next.setDate(today.getDate() + 30); if (d < today) return { label:'Vencido', cls:'danger' }; if (d <= next) return { label:'Por vencer', cls:'warning' }; return { label:'Vigente', cls:'success' } }
 function productStatus(p:InventoryProduct) { if (p.stock <= 0) return { label:'Sin stock', cls:'danger' }; if (p.stock <= p.min_stock) return { label:'Stock bajo', cls:'warning' }; return { label:'Disponible', cls:'success' } }
+function isProductDisabled(product: ProductStatusTarget) {
+  if (!product.id) return false
+  if (productStatusOverrides.value[product.id] !== undefined) return productStatusOverrides.value[product.id]
+  if (product.deleted_at) return true
+  if (typeof product.status === 'string') return product.status.toLowerCase().includes('inac')
+  if (typeof product.active === 'boolean') return !product.active
+  if (typeof product.is_active === 'boolean') return !product.is_active
+  return false
+}
+function rowStateClass(product: ProductStatusTarget) {
+  return { 'row-disabled': isProductDisabled(product) }
+}
+function syncBatchProductCost(item: BatchFormItem) {
+  const selectedProduct = productOptions.value.find((product) => product.id === item.product_id)
+  item.unit_price = Number(selectedProduct?.purchase_price || 0)
+}
+function openProductStatusModal(product: ProductStatusTarget | null) {
+  if (!product?.id) { feedbackError.value = 'No se pudo identificar el producto.'; return }
+  productStatusDialog.value = { productId: product.id, productName: product.name || 'este producto', disable: !isProductDisabled(product) }
+  showProductStatusModal.value = true
+}
+function closeProductStatusModal(force = false) {
+  if (isChangingProductStatus.value && !force) return
+  showProductStatusModal.value = false
+  productStatusDialog.value = null
+}
 function addBatchRow() { batchForm.value.products.push({ product_id:null, amount:1, unit_price:0, expiration_date:'' }) }
 function removeBatchRow(index:number) { if (batchForm.value.products.length > 1) batchForm.value.products.splice(index, 1) }
 function handleProductImageChange(event:Event) { const input = event.target as HTMLInputElement; productForm.value.image = input.files?.[0] ?? null }
@@ -136,19 +171,35 @@ function openEditProductModal(productId:number|null) {
   showProductModal.value = true
 }
 
-async function disableProduct(productId:number|null) {
-  if (!productId) { feedbackError.value = 'No se pudo identificar el producto a deshabilitar.'; return }
-  const confirmed = window.confirm('Se deshabilitara este producto. Deseas continuar?')
-  if (!confirmed) return
+async function confirmProductStatusChange() {
+  if (!productStatusDialog.value) return
+  const { productId, disable, productName } = productStatusDialog.value
   feedbackError.value = ''
+  feedbackSuccess.value = ''
+  isChangingProductStatus.value = true
   try {
-    const response = await fetch(`${API_BASE_URL}delete/${productId}`, { method:'DELETE', headers:{ Accept:'application/json' } })
+    const response = await fetch(
+      disable ? apiUrl(`/delete/${productId}`) : apiUrl(`/products/${productId}/status`),
+      disable
+        ? { method:'DELETE', headers:{ Accept:'application/json' } }
+        : {
+            method:'PATCH',
+            headers:{ Accept:'application/json', 'Content-Type':'application/json' },
+            body: JSON.stringify({ active: true }),
+          },
+    )
     const body = await response.json().catch(() => null)
-    if (!response.ok) { feedbackError.value = body?.message || 'No se pudo deshabilitar el producto.'; return }
-    feedbackSuccess.value = body?.message || 'Producto deshabilitado correctamente.'
-    await Promise.all([loadInventory(query.value.trim()), loadProductOptions()])
+    if (!response.ok) {
+      feedbackError.value = body?.message || `No se pudo ${disable ? 'deshabilitar' : 'habilitar'} ${productName}.`
+      return
+    }
+    productStatusOverrides.value = { ...productStatusOverrides.value, [productId]: disable }
+    feedbackSuccess.value = body?.message || `Producto ${disable ? 'deshabilitado' : 'habilitado'} correctamente.`
+    closeProductStatusModal(true)
   } catch {
-    feedbackError.value = 'Ocurrio un error al deshabilitar el producto.'
+    feedbackError.value = `Ocurrio un error al ${disable ? 'deshabilitar' : 'habilitar'} ${productName}.`
+  } finally {
+    isChangingProductStatus.value = false
   }
 }
 
@@ -157,17 +208,42 @@ async function submitProduct() {
   isSavingProduct.value = true
   try {
     const formData = new FormData()
+    
+    // 1. EL TRUCO PARA LARAVEL: Si es edición, añadimos el _method
+    if (isEditingProduct.value) {
+      formData.append('_method', 'PATCH') 
+    }
+
     for (const [key, value] of Object.entries(productForm.value)) {
       if (value !== null && value !== '') formData.append(key, value instanceof File ? value : String(value))
     }
-    const response = await fetch(`${API_BASE_URL}${isEditingProduct.value ? `products/${editingProductId.value}` : 'products'}`, { method:isEditingProduct.value ? 'PATCH' : 'POST', headers:{ Accept:'application/json', Authorization:`Bearer ${authStore.token}` }, body:formData })
+    
+    // 2. LA PETICIÓN: SIEMPRE se envía como POST
+    const response = await fetch(apiUrl(isEditingProduct.value ? `/products/${editingProductId.value}` : '/products'), { 
+      method: 'POST', // <-- CAMBIO IMPORTANTE: Siempre es POST
+      headers: { 
+        Accept: 'application/json', 
+        Authorization: `Bearer ${authStore.token}` 
+      }, 
+      body: formData 
+    })
+    
     const body = await response.json().catch(() => null)
-    if (!response.ok) { productError.value = body?.message || `No se pudo ${isEditingProduct.value ? 'actualizar' : 'guardar'} el producto.`; return }
+    
+    if (!response.ok) { 
+      productError.value = body?.message || `No se pudo ${isEditingProduct.value ? 'actualizar' : 'guardar'} el producto.`; 
+      return 
+    }
+    
     feedbackSuccess.value = body?.message || `Producto ${isEditingProduct.value ? 'actualizado' : 'agregado'} correctamente.`
     closeProductModal()
     productForm.value = initialProduct()
     await Promise.all([loadInventory(query.value.trim()), loadProductOptions()])
-  } catch { productError.value = 'Ocurrio un error al guardar el producto.' } finally { isSavingProduct.value = false }
+  } catch { 
+    productError.value = 'Ocurrió un error al guardar el producto.' 
+  } finally { 
+    isSavingProduct.value = false 
+  }
 }
 
 async function submitBatch() {
@@ -178,7 +254,7 @@ async function submitBatch() {
   if (!products.length) { batchError.value = 'Agrega al menos un producto valido.'; return }
   isSavingBatch.value = true
   try {
-    const response = await fetch(`${API_BASE_URL}/register-batch-reception`, { method:'POST', headers:{ Accept:'application/json', 'Content-Type':'application/json', Authorization:`Bearer ${authStore.token}` }, body:JSON.stringify({ identifier_batch:batchForm.value.identifier_batch.trim(), supplier_id:batchForm.value.supplier_id, entry_date:batchForm.value.entry_date, notes:batchForm.value.notes.trim() || null, products }) })
+    const response = await fetch(apiUrl('/register-batch-reception'), { method:'POST', headers:{ Accept:'application/json', 'Content-Type':'application/json', Authorization:`Bearer ${authStore.token}` }, body:JSON.stringify({ identifier_batch:batchForm.value.identifier_batch.trim(), supplier_id:batchForm.value.supplier_id, entry_date:batchForm.value.entry_date, notes:batchForm.value.notes.trim() || null, products }) })
     const body = await response.json().catch(() => null)
     if (!response.ok) { batchError.value = response.status === 401 ? 'Tu sesion local no esta autorizada para registrar lotes. Inicia sesion otra vez.' : body?.message || 'No se pudo registrar el lote.'; return }
     feedbackSuccess.value = body?.message || 'Lote registrado correctamente.'
@@ -191,23 +267,52 @@ async function submitBatch() {
 
 async function submitSupplier() {
   supplierError.value = ''
-  if (!supplierForm.value.name.trim()) { supplierError.value = 'Ingresa al menos el nombre del proveedor.'; return }
-  if (!authStore.token) { supplierError.value = 'Necesitas iniciar sesion de nuevo para guardar proveedores.'; return }
+
+  if (!supplierForm.value.name.trim()) {
+    supplierError.value = 'Ingresa al menos el nombre del proveedor.'
+    return
+  }
+
   isSavingSupplier.value = true
   try {
-    const response = await fetch(`${API_BASE_URL}suppliers`, { method:'POST', headers:{ Accept:'application/json', 'Content-Type':'application/json', Authorization:`Bearer ${authStore.token}` }, body:JSON.stringify({ name:supplierForm.value.name.trim(), contact:supplierForm.value.contact.trim() || null, email:supplierForm.value.email.trim() || null, phone_number:supplierForm.value.phone_number.trim() || null }) })
+    const response = await fetch(apiUrl('/suppliers'), {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${authStore.token}`,  
+      },
+      body: JSON.stringify({
+        name: supplierForm.value.name.trim(),
+        contact: supplierForm.value.contact.trim() || null,
+        email: supplierForm.value.email.trim() || null,
+        phone_number: supplierForm.value.phone_number.trim() || null,
+      }),
+    })
+
     const body = await response.json().catch(() => null)
-    if (!response.ok) { supplierError.value = response.status === 401 ? 'El backend local no reconocio tu sesion. Inicia sesion otra vez.' : body?.message || 'No se pudo crear el proveedor.'; return }
-    if (body?.supplier?.id && body?.supplier?.name) {
-      suppliers.value.unshift({ id: body.supplier.id, name: body.supplier.name })
-      batchForm.value.supplier_id = body.supplier.id
-      productForm.value.supplier_id = body.supplier.id
+
+    if (!response.ok) {
+      supplierError.value = body?.message || 'No se pudo crear el proveedor.'
+      return
     }
-    feedbackSuccess.value = body?.message || 'Proveedor creado correctamente.'
+
+    const newSupplier = body?.supplier || body
+    if (newSupplier?.id) {
+      suppliers.value.unshift({ id: newSupplier.id, name: newSupplier.name })
+      batchForm.value.supplier_id = newSupplier.id
+      productForm.value.supplier_id = newSupplier.id
+    }
+
+    feedbackSuccess.value = 'Proveedor creado correctamente.'
     showSupplierModal.value = false
     supplierForm.value = initialSupplier()
     await loadSuppliers()
-  } catch { supplierError.value = 'Ocurrio un error al guardar el proveedor.' } finally { isSavingSupplier.value = false }
+  } catch {
+    supplierError.value = 'Ocurrió un error inesperado al guardar.'
+  } finally {
+    isSavingSupplier.value = false
+  }
 }
 
 function exportInventory() {
@@ -297,8 +402,8 @@ function exportInventory() {
         <tbody>
           <tr v-if="isLoading"><td colspan="13" class="empty">Cargando inventario...</td></tr>
           <tr v-else-if="batchInventory.length === 0"><td colspan="13" class="empty">No se encontraron lotes.</td></tr>
-          <tr v-for="item in batchInventory" :key="item.id">
-            <td>{{ item.batch.identifier_batch || 'Sin lote' }}</td><td>{{ item.product.codigo || 'Sin codigo' }}</td><td>{{ item.product.name || 'Sin nombre' }}</td><td>{{ item.product.category_name || 'Sin categoria' }}</td><td>{{ item.batch.supplier_name || item.product.supplier_name || 'Sin proveedor' }}</td><td>{{ item.amount }}</td><td>{{ currency(item.unit_price) }}</td><td>{{ dateText(item.batch.entry_date || item.reception_date) }}</td><td>{{ dateText(item.expiration_date) }}</td><td>{{ item.product.location || 'Sin ubicacion' }}</td><td>{{ item.product.stock ?? 0 }}</td><td><span class="pill" :class="expirationStatus(item.expiration_date).cls">{{ expirationStatus(item.expiration_date).label }}</span></td><td><div class="action-group"><button class="action-btn edit" @click="openEditProductModal(item.product.id)">Editar</button><button class="action-btn disable" @click="disableProduct(item.product.id)">Deshabilitar</button></div></td>
+          <tr v-for="item in batchInventory" :key="item.id" :class="rowStateClass(item.product)">
+            <td>{{ item.batch.identifier_batch || 'Sin lote' }}</td><td>{{ item.product.codigo || 'Sin codigo' }}</td><td>{{ item.product.name || 'Sin nombre' }}</td><td>{{ item.product.category_name || 'Sin categoria' }}</td><td>{{ item.batch.supplier_name || item.product.supplier_name || 'Sin proveedor' }}</td><td>{{ item.amount }}</td><td>{{ currency(item.unit_price) }}</td><td>{{ dateText(item.batch.entry_date || item.reception_date) }}</td><td>{{ dateText(item.expiration_date) }}</td><td>{{ item.product.location || 'Sin ubicacion' }}</td><td>{{ item.product.stock ?? 0 }}</td><td><span class="pill" :class="isProductDisabled(item.product) ? 'danger' : expirationStatus(item.expiration_date).cls">{{ isProductDisabled(item.product) ? 'Inactivo' : expirationStatus(item.expiration_date).label }}</span></td><td><div class="action-group"><button class="action-btn edit" @click="openEditProductModal(item.product.id)">Editar</button><button class="action-btn" :class="isProductDisabled(item.product) ? 'enable' : 'disable'" @click="openProductStatusModal(item.product)">{{ isProductDisabled(item.product) ? 'Habilitar' : 'Deshabilitar' }}</button></div></td>
           </tr>
         </tbody>
       </table>
@@ -308,8 +413,8 @@ function exportInventory() {
         <tbody>
           <tr v-if="isLoading"><td colspan="14" class="empty">Cargando inventario...</td></tr>
           <tr v-else-if="productsInventory.length === 0"><td colspan="14" class="empty">No se encontraron productos.</td></tr>
-          <tr v-for="item in productsInventory" :key="item.id">
-            <td>{{ item.codigo }}</td><td>{{ item.name }}</td><td>{{ item.presentation || 'Sin presentacion' }}</td><td>{{ item.category_name || 'Sin categoria' }}</td><td>{{ item.supplier_name || 'Sin proveedor' }}</td><td>{{ item.stock }}</td><td>{{ item.min_stock }}</td><td>{{ item.max_stock ?? 'Sin maximo' }}</td><td>{{ currency(item.purchase_price) }}</td><td>{{ currency(item.sale_price) }}</td><td>{{ item.location || 'Sin ubicacion' }}</td><td>{{ dateText(item.expiration_date) }}</td><td><span class="pill" :class="productStatus(item).cls">{{ productStatus(item).label }}</span></td><td><div class="action-group"><button class="action-btn edit" @click="openEditProductModal(item.id)">Editar</button><button class="action-btn disable" @click="disableProduct(item.id)">Deshabilitar</button></div></td>
+          <tr v-for="item in productsInventory" :key="item.id" :class="rowStateClass(item)">
+            <td>{{ item.codigo }}</td><td>{{ item.name }}</td><td>{{ item.presentation || 'Sin presentacion' }}</td><td>{{ item.category_name || 'Sin categoria' }}</td><td>{{ item.supplier_name || 'Sin proveedor' }}</td><td>{{ item.stock }}</td><td>{{ item.min_stock }}</td><td>{{ item.max_stock ?? 'Sin maximo' }}</td><td>{{ currency(item.purchase_price) }}</td><td>{{ currency(item.sale_price) }}</td><td>{{ item.location || 'Sin ubicacion' }}</td><td>{{ dateText(item.expiration_date) }}</td><td><span class="pill" :class="isProductDisabled(item) ? 'danger' : productStatus(item).cls">{{ isProductDisabled(item) ? 'Inactivo' : productStatus(item).label }}</span></td><td><div class="action-group"><button class="action-btn edit" @click="openEditProductModal(item.id)">Editar</button><button class="action-btn" :class="isProductDisabled(item) ? 'enable' : 'disable'" @click="openProductStatusModal(item)">{{ isProductDisabled(item) ? 'Habilitar' : 'Deshabilitar' }}</button></div></td>
           </tr>
         </tbody>
       </table>
@@ -355,7 +460,7 @@ function exportInventory() {
             <div class="section-head"><div><h4>Productos del lote</h4><p class="copy small">Agrega cantidad, costo unitario y vencimiento por cada producto.</p></div><button type="button" class="btn secondary" @click="addBatchRow">Agregar producto</button></div>
             <div class="rows">
               <div v-for="(item, index) in batchForm.products" :key="index" class="row">
-                <label class="field"><span>Producto</span><select v-model.number="item.product_id" required><option :value="null">Selecciona un producto</option><option v-for="product in productOptions" :key="product.id" :value="product.id">{{ product.codigo }} - {{ product.name }}</option></select></label>
+                <label class="field"><span>Producto</span><select v-model.number="item.product_id" required @change="syncBatchProductCost(item)"><option :value="null">Selecciona un producto</option><option v-for="product in productOptions" :key="product.id" :value="product.id">{{ product.codigo }} - {{ product.name }}</option></select></label>
                 <label class="field"><span>Cantidad</span><input v-model.number="item.amount" type="number" min="1" required /></label>
                 <label class="field"><span>Costo unitario</span><input v-model.number="item.unit_price" type="number" min="0" step="0.01" required /></label>
                 <label class="field"><span>Vencimiento</span><VueDatePicker v-model="item.expiration_date" model-type="yyyy-MM-dd" format="dd/MM/yyyy" :enable-time-picker="false" auto-apply :clearable="false" placeholder="dd/mm/aaaa" /></label>
@@ -382,12 +487,25 @@ function exportInventory() {
         </form>
       </div>
     </div>
+
+    <div v-if="showProductStatusModal && productStatusDialog" class="overlay" @click.self="closeProductStatusModal()">
+      <div class="modal compact confirm-modal">
+        <div class="confirm-badge" :class="productStatusDialog.disable ? 'danger' : 'success'">{{ productStatusDialog.disable ? 'Deshabilitar producto' : 'Habilitar producto' }}</div>
+        <h3>{{ productStatusDialog.disable ? '¿Seguro que quieres deshabilitarlo?' : '¿Quieres volver a habilitarlo?' }}</h3>
+        <p class="copy">Producto: <strong>{{ productStatusDialog.productName }}</strong></p>
+        <p class="copy">{{ productStatusDialog.disable ? 'Se marcara como inactivo y lo resaltaremos en rojo para que sea muy claro visualmente.' : 'Lo dejaremos activo otra vez y recuperara su apariencia normal.' }}</p>
+        <div class="foot">
+          <button type="button" class="btn secondary" :disabled="isChangingProductStatus" @click="closeProductStatusModal()">Cancelar</button>
+          <button type="button" class="btn" :class="productStatusDialog.disable ? 'danger-btn' : 'primary'" :disabled="isChangingProductStatus" @click="confirmProductStatusChange()">{{ isChangingProductStatus ? (productStatusDialog.disable ? 'Deshabilitando...' : 'Habilitando...') : (productStatusDialog.disable ? 'Si, deshabilitar' : 'Si, habilitar') }}</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .page{max-width:1440px;margin:0 auto;padding:24px 22px 32px;min-height:calc(100vh - 80px);background:radial-gradient(circle at top right,rgba(37,99,235,.12),transparent 28%),linear-gradient(180deg,#edf4ff 0%,#e9f1ff 100%)}
-.hero,.panel-head,.hero-actions,.actions,.tabs,.supplier-row,.foot,.section-head{display:flex;gap:12px}.hero,.panel-head,.section-head{justify-content:space-between;align-items:flex-start}.hero{margin-bottom:18px}.eyebrow{margin:0 0 6px;font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#2563eb}.copy{margin:8px 0 0;color:#64748b;font-size:14px;line-height:1.5}.copy.small{font-size:13px}.hero h1,.panel h2,.modal h3,.section-head h4{margin:0;color:#0f172a}.search{width:100%;padding:14px 18px;margin-bottom:14px;border-radius:18px;border:1px solid #c9d8ef;background:rgba(255,255,255,.92);font-size:16px;color:#1e293b}.search:focus,.field input:focus,.field select:focus,.field textarea:focus,.field :deep(.dp__input):focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 4px rgba(37,99,235,.14)}.flash{margin:0 0 14px;padding:12px 14px;border-radius:14px;font-size:14px}.ok{background:#dcfce7;color:#166534}.err{background:#fee2e2;color:#b91c1c}.stats{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:14px;margin-bottom:18px}.card,.panel,.modal,.section{background:rgba(255,255,255,.94);border:1px solid rgba(191,219,254,.7);box-shadow:0 18px 40px rgba(15,23,42,.08)}.card{border-radius:18px;padding:18px}.card span{color:#64748b;font-size:13px}.card strong{display:block;margin-top:12px;font-size:28px;color:#0f172a}.panel{border-radius:24px;padding:22px;overflow:auto}.panel-head > div:first-child{display:flex;flex-direction:column;gap:10px}.tabs{margin-top:2px;flex-wrap:wrap;padding:6px;border-radius:18px;background:#eef4ff;border:1px solid #d7e4f8;width:fit-content}.tab{appearance:none;border:1px solid transparent;background:transparent;color:#31507b;border-radius:999px;padding:10px 16px;font-size:14px;font-weight:700;cursor:pointer}.tab.active{background:linear-gradient(135deg,#2563eb 0%,#1d4ed8 100%);color:#fff;border-color:transparent;box-shadow:0 10px 20px rgba(37,99,235,.18)}.table{width:100%;min-width:1180px;border-collapse:collapse}.table th{padding:12px 10px;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:#5b6b84;border-bottom:1px solid #dbe7f7}.table td{padding:14px 10px;font-size:14px;color:#122033;border-bottom:1px solid #ebf1fa}.empty{text-align:center;color:#64748b;padding:24px 12px}.action-group{display:flex;gap:8px;flex-wrap:wrap}.action-btn{border:none;border-radius:10px;padding:8px 10px;font-size:12px;font-weight:700;cursor:pointer}.action-btn.edit{background:#e0ecff;color:#1d4ed8}.action-btn.disable{background:#fee2e2;color:#b91c1c}.pill{display:inline-flex;min-width:96px;justify-content:center;padding:7px 10px;border-radius:999px;font-size:12px;font-weight:700}.success{background:#dcfce7;color:#166534}.warning{background:#fef3c7;color:#b45309}.danger{background:#fee2e2;color:#b91c1c}.neutral{background:#e5e7eb;color:#475569}.btn{border:none;border-radius:12px;padding:11px 16px;font-size:14px;font-weight:700;cursor:pointer}.btn:disabled{opacity:.7;cursor:not-allowed}.primary{background:linear-gradient(135deg,#2563eb 0%,#1d4ed8 100%);color:#fff;box-shadow:0 10px 20px rgba(37,99,235,.25)}.secondary{background:#fff;color:#1e3a8a;border:1px solid #c7d7ee}.soft{background:#eef4ff;color:#2563eb;white-space:nowrap}.overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(15,23,42,.48);backdrop-filter:blur(4px);z-index:70}.modal{width:min(860px,100%);max-height:calc(100vh - 40px);overflow-y:auto;border-radius:26px;padding:22px}.wide{width:min(1120px,100%)}.compact{width:min(560px,100%)}.modal-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:18px}.close{border:none;background:transparent;color:#475569;font-size:26px;line-height:1;cursor:pointer}.form{display:flex;flex-direction:column;gap:16px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.field{display:flex;flex-direction:column;gap:7px}.field span{font-size:13px;font-weight:700;color:#334155}.field input,.field select,.field textarea,.field :deep(.dp__input){width:100%;box-sizing:border-box;border:1px solid #c9d8ef;border-radius:14px;padding:12px 14px;background:#fbfdff;color:#0f172a;font-size:14px}.field textarea{resize:vertical}.field :deep(.dp__main){width:100%}.field :deep(.dp__input_wrap){width:100%}.field :deep(.dp__input_icon){left:12px;color:#64748b}.field :deep(.dp__clear_icon){display:none}.field :deep(.dp__input){padding-left:40px;padding-right:14px;min-height:48px}.full{grid-column:1 / -1}.section{border-radius:20px;padding:18px}.rows{display:flex;flex-direction:column;gap:12px}.row{display:grid;grid-template-columns:minmax(260px,2fr) 1fr 1fr 1fr auto;gap:12px;align-items:end;padding:14px;border-radius:18px;background:#f7faff;border:1px solid #dbe7f7}.remove{align-self:end}
+.hero,.panel-head,.hero-actions,.actions,.tabs,.supplier-row,.foot,.section-head{display:flex;gap:12px}.hero,.panel-head,.section-head{justify-content:space-between;align-items:flex-start}.hero{margin-bottom:18px}.eyebrow{margin:0 0 6px;font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#2563eb}.copy{margin:8px 0 0;color:#64748b;font-size:14px;line-height:1.5}.copy.small{font-size:13px}.hero h1,.panel h2,.modal h3,.section-head h4{margin:0;color:#0f172a}.search{width:100%;padding:14px 18px;margin-bottom:14px;border-radius:18px;border:1px solid #c9d8ef;background:rgba(255,255,255,.92);font-size:16px;color:#1e293b}.search:focus,.field input:focus,.field select:focus,.field textarea:focus,.field :deep(.dp__input):focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 4px rgba(37,99,235,.14)}.flash{margin:0 0 14px;padding:12px 14px;border-radius:14px;font-size:14px}.ok{background:#dcfce7;color:#166534}.err{background:#fee2e2;color:#b91c1c}.stats{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:14px;margin-bottom:18px}.card,.panel,.modal,.section{background:rgba(255,255,255,.94);border:1px solid rgba(191,219,254,.7);box-shadow:0 18px 40px rgba(15,23,42,.08)}.card{border-radius:18px;padding:18px}.card span{color:#64748b;font-size:13px}.card strong{display:block;margin-top:12px;font-size:28px;color:#0f172a}.panel{border-radius:24px;padding:22px;overflow:auto}.panel-head > div:first-child{display:flex;flex-direction:column;gap:10px}.tabs{margin-top:2px;flex-wrap:wrap;padding:6px;border-radius:18px;background:#eef4ff;border:1px solid #d7e4f8;width:fit-content}.tab{appearance:none;border:1px solid transparent;background:transparent;color:#31507b;border-radius:999px;padding:10px 16px;font-size:14px;font-weight:700;cursor:pointer}.tab.active{background:linear-gradient(135deg,#2563eb 0%,#1d4ed8 100%);color:#fff;border-color:transparent;box-shadow:0 10px 20px rgba(37,99,235,.18)}.table{width:100%;min-width:1180px;border-collapse:collapse}.table th{padding:12px 10px;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:#5b6b84;border-bottom:1px solid #dbe7f7}.table td{padding:14px 10px;font-size:14px;color:#122033;border-bottom:1px solid #ebf1fa}.row-disabled td{background:linear-gradient(180deg,rgba(254,226,226,.82),rgba(255,241,242,.92));color:#7f1d1d;border-bottom-color:#fecaca}.row-disabled td:first-child{box-shadow:inset 4px 0 0 #ef4444}.empty{text-align:center;color:#64748b;padding:24px 12px}.action-group{display:flex;gap:8px;flex-wrap:wrap}.action-btn{border:none;border-radius:10px;padding:8px 10px;font-size:12px;font-weight:700;cursor:pointer}.action-btn.edit{background:#e0ecff;color:#1d4ed8}.action-btn.disable{background:#fee2e2;color:#b91c1c}.action-btn.enable{background:#dcfce7;color:#166534}.pill{display:inline-flex;min-width:96px;justify-content:center;padding:7px 10px;border-radius:999px;font-size:12px;font-weight:700}.success{background:#dcfce7;color:#166534}.warning{background:#fef3c7;color:#b45309}.danger{background:#fee2e2;color:#b91c1c}.neutral{background:#e5e7eb;color:#475569}.btn{border:none;border-radius:12px;padding:11px 16px;font-size:14px;font-weight:700;cursor:pointer}.btn:disabled{opacity:.7;cursor:not-allowed}.primary{background:linear-gradient(135deg,#2563eb 0%,#1d4ed8 100%);color:#fff;box-shadow:0 10px 20px rgba(37,99,235,.25)}.danger-btn{background:linear-gradient(135deg,#ef4444 0%,#dc2626 100%);color:#fff;box-shadow:0 10px 20px rgba(239,68,68,.24)}.secondary{background:#fff;color:#1e3a8a;border:1px solid #c7d7ee}.soft{background:#eef4ff;color:#2563eb;white-space:nowrap}.overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(15,23,42,.48);backdrop-filter:blur(4px);z-index:70}.modal{width:min(860px,100%);max-height:calc(100vh - 40px);overflow-y:auto;border-radius:26px;padding:22px}.wide{width:min(1120px,100%)}.compact{width:min(560px,100%)}.confirm-modal{display:flex;flex-direction:column;gap:12px}.confirm-badge{display:inline-flex;align-self:flex-start;padding:8px 12px;border-radius:999px;font-size:12px;font-weight:700}.confirm-badge.danger{background:#fee2e2;color:#b91c1c}.confirm-badge.success{background:#dcfce7;color:#166534}.modal-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:18px}.close{border:none;background:transparent;color:#475569;font-size:26px;line-height:1;cursor:pointer}.form{display:flex;flex-direction:column;gap:16px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.field{display:flex;flex-direction:column;gap:7px}.field span{font-size:13px;font-weight:700;color:#334155}.field input,.field select,.field textarea,.field :deep(.dp__input){width:100%;box-sizing:border-box;border:1px solid #c9d8ef;border-radius:14px;padding:12px 14px;background:#fbfdff;color:#0f172a;font-size:14px}.field textarea{resize:vertical}.field :deep(.dp__main){width:100%}.field :deep(.dp__input_wrap){width:100%}.field :deep(.dp__input_icon){left:12px;color:#64748b}.field :deep(.dp__clear_icon){display:none}.field :deep(.dp__input){padding-left:40px;padding-right:14px;min-height:48px}.full{grid-column:1 / -1}.section{border-radius:20px;padding:18px}.rows{display:flex;flex-direction:column;gap:12px}.row{display:grid;grid-template-columns:minmax(260px,2fr) 1fr 1fr 1fr auto;gap:12px;align-items:end;padding:14px;border-radius:18px;background:#f7faff;border:1px solid #dbe7f7}.remove{align-self:end}
 @media (max-width:1180px){.stats{grid-template-columns:repeat(3,minmax(0,1fr))}.row{grid-template-columns:1fr 1fr}}
 @media (max-width:820px){.page{padding:18px 14px 24px}.hero,.panel-head,.section-head,.foot,.hero-actions,.actions,.tabs,.supplier-row{flex-direction:column;align-items:stretch}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.grid,.row{grid-template-columns:1fr}}
 </style>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import ClientFooter from '@/components/Customer/ClientFooter.vue'
-import ProductCard from '@/components/ProductCard.vue'
+import ProductCard from '@/components/Customer/ProductCard.vue' // <-- Cambiado a la versión de Customer
 import { usePublicApi } from '@/composables/usePublicApi'
 import type { Product } from '@/types/types.ts'
 import ClientNavbar from '@/components/Customer/ClientNavbar.vue'
@@ -173,7 +173,7 @@ onUnmounted(() => {
       </div>
     </section>
 
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12 w-full grow">
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12 w-full flex-grow">
 
       <div v-if="isFetching" class="flex justify-center items-center py-20">
         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
