@@ -16,6 +16,7 @@ export const createEchoInstance = (token?: string) => {
     auth: {
       headers: {
         Authorization: token ? `Bearer ${token}` : '',
+        Accept: 'application/json',
       },
     },
   });

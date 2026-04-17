@@ -45,9 +45,9 @@ onMounted(() => {
 
   echo.channel('public-orders')
     .listen('.OrderStatusChanged', (e: any) => {
-        console.log('🔄 Estado de tu pedido actualizado:', e.orderData);
+        console.log('Estado de tu pedido actualizado:', e.orderData);
         
-        const orderToUpdate = orders.value.find(o => o.id === e.orderData.id);
+        const orderToUpdate = orders.value.find(o => o.id === e.order.id);
         
         if (orderToUpdate) {  
           orderToUpdate.state = e.orderData.state;

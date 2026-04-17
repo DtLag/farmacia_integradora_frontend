@@ -39,16 +39,18 @@ onMounted(() => {
 
     echo.channel('public-orders')
       .listen('.OrderStatusChanged', (e: any) => {
+        if(e.order.customer_id === authStore.user?.id){
           const id = toastCounter++
-          
+
           toasts.value.push({
-            id,
+            id, 
             message: `Tu pedido #${e.order.id} cambió a: ${e.order.state}`
           })
 
           setTimeout(() => {
             closeToast(id)
           }, 6000)
+        }
       })
   }
 })

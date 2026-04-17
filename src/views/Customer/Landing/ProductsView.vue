@@ -55,7 +55,7 @@ onMounted(() => {
 
   echo.channel('public-inventory')
   .listen('.ProductStockUpdated', (evento: any) => {
-    console.log('📦 Evento WebSockets Recibido:', evento.product);
+    console.log('Evento WebSockets Recibido:', evento.product);
 
     const productToUpdate = products.value.find((p: any) => p.id === evento.product.id);
     
