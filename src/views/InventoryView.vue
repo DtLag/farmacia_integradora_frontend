@@ -5,7 +5,6 @@ import { VueDatePicker } from '@vuepic/vue-datepicker'
 import '@vuepic/vue-datepicker/dist/main.css'
 import { utils, writeFileXLSX } from 'xlsx'
 import { useApi } from '@/composables/useApiFetch'
-import { usePublicApi } from '@/composables/usePublicApi'
 import { useAuthStore } from '@/stores/auth'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
@@ -105,7 +104,7 @@ async function loadCategories() {
 }
 
 async function loadSuppliers() {
-  const { data, error } = await usePublicApi('/supply').get().json()
+  const { data, error } = await useApi('/supply').get().json()
   if (!error.value && Array.isArray(data.value)) suppliers.value = data.value as SelectOption[]
 }
 
@@ -243,23 +242,52 @@ async function submitBatch() {
 
 async function submitSupplier() {
   supplierError.value = ''
-  if (!supplierForm.value.name.trim()) { supplierError.value = 'Ingresa al menos el nombre del proveedor.'; return }
-  if (!authStore.token) { supplierError.value = 'Necesitas iniciar sesion de nuevo para guardar proveedores.'; return }
+
+  if (!supplierForm.value.name.trim()) {
+    supplierError.value = 'Ingresa al menos el nombre del proveedor.'
+    return
+  }
+
   isSavingSupplier.value = true
   try {
-    const response = await fetch(apiUrl('/suppliers'), { method:'POST', headers:{ Accept:'application/json', 'Content-Type':'application/json', Authorization:`Bearer ${authStore.token}` }, body:JSON.stringify({ name:supplierForm.value.name.trim(), contact:supplierForm.value.contact.trim() || null, email:supplierForm.value.email.trim() || null, phone_number:supplierForm.value.phone_number.trim() || null }) })
+    const response = await fetch(apiUrl('/suppliers'), {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${authStore.token}`,  
+      },
+      body: JSON.stringify({
+        name: supplierForm.value.name.trim(),
+        contact: supplierForm.value.contact.trim() || null,
+        email: supplierForm.value.email.trim() || null,
+        phone_number: supplierForm.value.phone_number.trim() || null,
+      }),
+    })
+
     const body = await response.json().catch(() => null)
-    if (!response.ok) { supplierError.value = response.status === 401 ? 'El backend local no reconocio tu sesion. Inicia sesion otra vez.' : body?.message || 'No se pudo crear el proveedor.'; return }
-    if (body?.supplier?.id && body?.supplier?.name) {
-      suppliers.value.unshift({ id: body.supplier.id, name: body.supplier.name })
-      batchForm.value.supplier_id = body.supplier.id
-      productForm.value.supplier_id = body.supplier.id
+
+    if (!response.ok) {
+      supplierError.value = body?.message || 'No se pudo crear el proveedor.'
+      return
     }
-    feedbackSuccess.value = body?.message || 'Proveedor creado correctamente.'
+
+    const newSupplier = body?.supplier || body
+    if (newSupplier?.id) {
+      suppliers.value.unshift({ id: newSupplier.id, name: newSupplier.name })
+      batchForm.value.supplier_id = newSupplier.id
+      productForm.value.supplier_id = newSupplier.id
+    }
+
+    feedbackSuccess.value = 'Proveedor creado correctamente.'
     showSupplierModal.value = false
     supplierForm.value = initialSupplier()
     await loadSuppliers()
-  } catch { supplierError.value = 'Ocurrio un error al guardar el proveedor.' } finally { isSavingSupplier.value = false }
+  } catch {
+    supplierError.value = 'Ocurrió un error inesperado al guardar.'
+  } finally {
+    isSavingSupplier.value = false
+  }
 }
 
 function exportInventory() {

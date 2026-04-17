@@ -84,10 +84,11 @@ onUnmounted(() => {
           <label class="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Módulo</label>
           <select v-model="modulo" class="w-full border border-gray-200 rounded-xl bg-gray-50/50 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0B369E] transition">
             <option value="">Todos los módulos</option>
-            <option>Update</option>
-            <option>Nueva Venta</option>
-            <option>Actualizado</option>
-            <option>Output</option>
+            <option value="Venta">Venta</option>
+            <option value="Productos">Productos</option>
+            <option value="Producto">Producto</option>
+            <option value="Movimientos de Inventario">Movimientos de Inventario</option>
+            <option value="Reservaciones">Reservaciones</option>
           </select>
         </div>
 
