@@ -47,23 +47,22 @@ function selectOption(order: Order, state: 'procesar' | 'cancelar' | 'completar'
 </script>
 
 <template>
-  <div class="p-6 flex gap-6" >
-    <div class="w-2/3">
-      <div class="flex gap-3 mb-6 items-center">
-        <button :class="['px-4 py-1.5 rounded-lg font-semibold transition-all border', orderStore.currentState === 'pending' ? 'bg-amber-100 border-amber-300 text-amber-800' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50']" @click="orderStore.getOrders('pending')"> Pendientes </button>
-        <button :class="['px-4 py-1.5 rounded-lg font-semibold transition-all border', orderStore.currentState === 'ready' ? 'bg-blue-100 border-blue-300 text-blue-800' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50']" @click="orderStore.getOrders('ready')"> Listos </button>
-        <button :class="['px-4 py-1.5 rounded-lg font-semibold transition-all border', orderStore.currentState === 'completed' ? 'bg-emerald-100 border-emerald-300 text-emerald-800' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50']" @click="orderStore.getOrders('completed')"> Completados </button>
-        <button :class="['px-4 py-1.5 rounded-lg font-semibold transition-all border', orderStore.currentState === 'canceled' ? 'bg-rose-100 border-rose-300 text-rose-800' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50']" @click="orderStore.getOrders('canceled')"> Cancelados</button>
+  <div class="p-4 sm:p-6 lg:p-8 flex flex-col lg:flex-row gap-6 min-h-screen bg-gray-50/50">
+    
+    <div class="w-full lg:w-2/3 xl:w-3/4 flex flex-col">
+      
+      <div class="flex gap-2 sm:gap-3 mb-6 items-center overflow-x-auto pb-2 scrollbar-hide w-full border-b border-gray-200/60 lg:border-none">
+        <button :class="['px-4 py-2 sm:py-1.5 rounded-lg font-bold text-sm transition-all border whitespace-nowrap', orderStore.currentState === 'pending' ? 'bg-amber-100 border-amber-300 text-amber-800 shadow-sm' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50']" @click="orderStore.getOrders('pending')"> Pendientes </button>
+        <button :class="['px-4 py-2 sm:py-1.5 rounded-lg font-bold text-sm transition-all border whitespace-nowrap', orderStore.currentState === 'ready' ? 'bg-blue-100 border-blue-300 text-blue-800 shadow-sm' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50']" @click="orderStore.getOrders('ready')"> Listos </button>
+        <button :class="['px-4 py-2 sm:py-1.5 rounded-lg font-bold text-sm transition-all border whitespace-nowrap', orderStore.currentState === 'completed' ? 'bg-emerald-100 border-emerald-300 text-emerald-800 shadow-sm' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50']" @click="orderStore.getOrders('completed')"> Completados </button>
+        <button :class="['px-4 py-2 sm:py-1.5 rounded-lg font-bold text-sm transition-all border whitespace-nowrap', orderStore.currentState === 'canceled' ? 'bg-rose-100 border-rose-300 text-rose-800 shadow-sm' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50']" @click="orderStore.getOrders('canceled')"> Cancelados</button>
   
-        <button class="ml-auto flex items-center gap-2 px-4 py-1.5 bg-slate-800 text-white rounded-lg hover:bg-slate-700 transition-transform active:scale-95 shadow-sm text-sm" @click="orderStore.getOrders(orderStore.currentState)">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-          Refrescar
+        <button class="lg:ml-auto ml-4 flex items-center gap-2 px-4 py-2 sm:py-1.5 bg-slate-800 text-white rounded-lg hover:bg-slate-700 transition-transform active:scale-95 shadow-sm text-sm font-bold whitespace-nowrap" @click="orderStore.getOrders(orderStore.currentState)">
+          <i class="fas fa-sync-alt"></i> Refrescar
         </button>
       </div>
     
-      <div class="grid grid-cols-3 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-4">
         <OrdersCard v-for="order in orderStore.orders" :key="order.id"  :order="order"
         @select="orderStore.selectOrder(order)" 
         @procesar="selectOption(order, 'procesar')" 
@@ -71,10 +70,17 @@ function selectOption(order: Order, state: 'procesar' | 'cancelar' | 'completar'
         @completar="selectOption(order, 'completar')"
         />
       </div>
+
+      <div v-if="orderStore.orders.length === 0" class="flex flex-col items-center justify-center py-20 text-gray-400 bg-white rounded-2xl border border-dashed border-gray-300 mt-4">
+        <i class="fas fa-clipboard-list text-5xl mb-3 text-gray-300"></i>
+        <p class="font-medium text-lg">No hay pedidos en esta sección</p>
+      </div>
     </div>
 
-    <div class="w-1/3 bg-gray-50 p-4 rounded shadow">
-      <OrderDetailsCard :order="orderStore.selectedOrder"/>
+    <div class="w-full lg:w-1/3 xl:w-1/4">
+      <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-gray-200 lg:sticky lg:top-6 h-fit transition-all">
+        <OrderDetailsCard :order="orderStore.selectedOrder"/>
+      </div>
     </div>
 
   </div>
@@ -85,8 +91,14 @@ function selectOption(order: Order, state: 'procesar' | 'cancelar' | 'completar'
   @process="orderStore.startProcessOrder()" 
   @cancel="orderStore.cancelOrder()" 
   @complete="orderStore.completeOrder()"/>
-
 </template>
 
 <style scoped>
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
 </style>
