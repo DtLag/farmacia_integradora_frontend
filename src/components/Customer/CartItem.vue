@@ -1,18 +1,36 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { CartItem } from '@/stores/cart'
 
-defineProps<{
+const props = defineProps<{
   item: CartItem
 }>()
 
 const emit = defineEmits(['remove', 'update-quantity'])
+
+const productImageUrl = computed(() => {
+  const rawUrl = props.item.product.image_url
+  const apiOrigin = new URL(import.meta.env.VITE_API_BASE_URL ?? 'https://api.harold-dev.me/api').origin
+
+  if (!rawUrl) return 'https://via.placeholder.com/50'
+
+  try {
+    const parsed = new URL(rawUrl, apiOrigin)
+    if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') {
+      return `${apiOrigin}${parsed.pathname}`
+    }
+    return parsed.href
+  } catch {
+    return `${apiOrigin}${rawUrl.startsWith('/') ? rawUrl : `/${rawUrl}`}`
+  }
+})
 </script>
 
 <template>
   <div class="flex items-center justify-between border-b py-4">
     <div class="flex items-center gap-4">
       <img 
-        :src="item.product.image_url || 'https://via.placeholder.com/50'" 
+        :src="productImageUrl" 
         class="w-16 h-16 object-cover rounded" 
       />
       <div>

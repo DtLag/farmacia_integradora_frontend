@@ -18,6 +18,23 @@ const hasAvailableStock = computed(() => {
   return quantityInCart.value < props.product.stock
 })
 
+const productImageUrl = computed(() => {
+  const rawUrl = props.product.image_url
+  const apiOrigin = new URL(import.meta.env.VITE_API_BASE_URL ?? 'https://api.harold-dev.me/api').origin
+
+  if (!rawUrl) return 'https://via.placeholder.com/300x200?text=Sin+Imagen'
+
+  try {
+    const parsed = new URL(rawUrl, apiOrigin)
+    if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') {
+      return `${apiOrigin}${parsed.pathname}`
+    }
+    return parsed.href
+  } catch {
+    return `${apiOrigin}${rawUrl.startsWith('/') ? rawUrl : `/${rawUrl}`}`
+  }
+})
+
 const emit = defineEmits(['add-to-cart'])
 
 function handleAddToCart() {
@@ -31,7 +48,7 @@ function handleAddToCart() {
   <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow flex flex-col">
     <div class="h-48 overflow-hidden bg-gray-100 relative">
       <img 
-        :src="product.image_url || 'https://via.placeholder.com/300x200?text=Sin+Imagen'" 
+        :src="productImageUrl" 
         :alt="product.name"
         class="w-full h-full object-cover"
       />

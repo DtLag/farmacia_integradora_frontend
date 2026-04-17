@@ -1,10 +1,28 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { Product } from '@/types/types.ts'
 import '@/assets/main.css'
 
-defineProps<{
+const props = defineProps<{
   product: Product
 }>()
+
+const productImageUrl = computed(() => {
+  const rawUrl = props.product.image_url
+  const apiOrigin = new URL(import.meta.env.VITE_API_BASE_URL ?? 'https://api.harold-dev.me/api').origin
+
+  if (!rawUrl) return 'https://via.placeholder.com/200x100?text=Sin+Imagen'
+
+  try {
+    const parsed = new URL(rawUrl, apiOrigin)
+    if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') {
+      return `${apiOrigin}${parsed.pathname}`
+    }
+    return parsed.href
+  } catch {
+    return `${apiOrigin}${rawUrl.startsWith('/') ? rawUrl : `/${rawUrl}`}`
+  }
+})
 </script>
 
 <template>
@@ -18,8 +36,8 @@ defineProps<{
   >
 
     <img
-      :src="product.image_url"
-      :alt="product.image_url"
+      :src="productImageUrl"
+      :alt="product.name"
       class="mb-2 h-24 w-full rounded object-cover"
     />
 
