@@ -68,7 +68,7 @@ const isChangingStatus = ref(false)
 const filterOptions: FilterKey[] = ['Todos', 'Administradores', 'Empleados', 'Inactivos']
 const accentPalette = ['#f97316', '#0f766e', '#2563eb', '#eab308', '#ef4444', '#8b5cf6']
 
-const createForm = reactive({ name: '', last_name: '', email: '', user_id: '', password: '', role: 'vendedor' as RoleSlug })
+const createForm = reactive({ name: '', last_name: '', email: '', user_id: '', password: '', role_id: '' })
 const editForm = reactive({ id: 0, name: '', last_name: '', email: '', role: 'vendedor' as RoleSlug, password: '' })
 
 const totalUsers = computed(() => users.value.length)
@@ -227,7 +227,7 @@ function buildUserCode() {
 function openCreateModal() {
   errorMessage.value = ''
   successMessage.value = ''
-  Object.assign(createForm, { name: '', last_name: '', email: '', user_id: buildUserCode(), password: '', role: 'vendedor' as RoleSlug })
+  Object.assign(createForm, { name: '', last_name: '', email: '', user_id: buildUserCode(), password: '', role_id: 2 })
   isCreateModalOpen.value = true
 }
 
@@ -262,7 +262,7 @@ async function submitCreate() {
       email: createForm.email.trim(),
       user_id: createForm.user_id.trim().toUpperCase(),
       password: createForm.password.trim(),
-      role: createForm.role,
+      role_id: createForm.role_id,
     })
     successMessage.value = 'Usuario creado correctamente.'
     isCreateModalOpen.value = false
@@ -606,7 +606,14 @@ function getErrorMessage(error: unknown, fallback: string) {
             <div class="space-y-1.5"><label class="text-xs font-bold text-gray-600 uppercase tracking-wider">Email</label><input v-model="createForm.email" type="email" required class="w-full px-4 py-2.5 bg-gray-50 focus:bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"/></div>
             <div class="space-y-1.5"><label class="text-xs font-bold text-gray-600 uppercase tracking-wider">Clave Acceso</label><input v-model="createForm.user_id" type="text" required class="w-full px-4 py-2.5 bg-gray-50 focus:bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"/></div>
             <div class="space-y-1.5"><label class="text-xs font-bold text-gray-600 uppercase tracking-wider">Contraseña</label><input v-model="createForm.password" type="password" minlength="8" required class="w-full px-4 py-2.5 bg-gray-50 focus:bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"/></div>
-            <div class="space-y-1.5"><label class="text-xs font-bold text-gray-600 uppercase tracking-wider">Rol</label><select v-model="createForm.role" class="w-full px-4 py-2.5 bg-gray-50 focus:bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"><option value="admin">Administrador</option><option value="vendedor">Empleado</option></select></div>
+            <div class="space-y-1.5">
+              <label class="text-xs font-bold text-gray-600 uppercase tracking-wider">Rol</label>
+              <select v-model="createForm.role_id" required class="w-full px-4 py-2.5 bg-gray-50 focus:bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                <option value="" disabled>Selecciona un rol</option>
+                <option :value="1">Administrador</option>
+                <option :value="2">Empleado</option>
+              </select>
+            </div>          
           </div>
           
           <div class="mt-8 flex gap-3 pt-6 border-t border-gray-100">
