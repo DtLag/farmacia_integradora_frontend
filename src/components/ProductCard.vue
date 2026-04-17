@@ -8,19 +8,24 @@ const props = defineProps<{
 
 const productImageUrl = computed(() => {
   const rawUrl = props.product.image_url
-  const apiOrigin = new URL(import.meta.env.VITE_API_BASE_URL ?? 'https://api.harold-dev.me/api').origin
 
   if (!rawUrl) return 'https://via.placeholder.com/200x100?text=Sin+Imagen'
 
-  try {
-    const parsed = new URL(rawUrl, apiOrigin)
-    if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') {
-      return `${apiOrigin}${parsed.pathname}`
-    }
-    return parsed.href
-  } catch {
-    return `${apiOrigin}${rawUrl.startsWith('/') ? rawUrl : `/${rawUrl}`}`
+  // Si la URL ya viene completa desde el backend (ej. S3 o ruta absoluta), la usamos directo
+  if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
+    return rawUrl
   }
+
+  // Obtenemos la URL base de Vite y le removemos el '/api' del final
+  const baseUrl = (import.meta.env.VITE_API_BASE_URL || 'https://api.harold-dev.me/api').replace(/\/api\/?$/, '')
+
+  // Limpiamos la ruta y nos aseguramos de que contenga '/storage/'
+  let path = rawUrl.startsWith('/') ? rawUrl : `/${rawUrl}`
+  if (!path.startsWith('/storage/')) {
+    path = `/storage${path}`
+  }
+
+  return `${baseUrl}${path}`
 })
 </script>
 
@@ -39,7 +44,7 @@ const productImageUrl = computed(() => {
 
     <div class="h-24 sm:h-28 w-full bg-gray-50 rounded-lg mb-3 overflow-hidden shrink-0 border border-gray-100 relative">
       <img
-        :src="product.image_url || 'https://via.placeholder.com/150'"
+        :src="productImageUrl"
         :alt="product.name"
         class="h-full w-full object-cover"
       />
